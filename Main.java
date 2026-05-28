@@ -33,15 +33,16 @@ public class Main extends JFrame {
         setLayout(new BorderLayout(10, 10));
 
         // 1. TOP AREA - Header + Filters
-        JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 20));
+        JPanel topPanel = new JPanel(new GridLayout(1, 4, 0, 0));
         topPanel.setBackground(new Color(245, 247, 249));
         topPanel.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, Color.LIGHT_GRAY));
 
         Font labelFont = new Font("Segoe UI", Font.BOLD, 12);
 
-        topPanel.add(createStyledLabel("SEARCH FLIGHT #:", labelFont));
+        JPanel searchGroup = createFilterGroupPanel();
+        searchGroup.add(createStyledLabel("SEARCH FLIGHT #:", labelFont));
         txtSearchFlight = new JTextField(10);
-        topPanel.add(txtSearchFlight);
+        searchGroup.add(txtSearchFlight);
         JButton clearFiltersBtn = new JButton("CLEAR");
         clearFiltersBtn.setFont(new Font("Segoe UI", Font.BOLD, 11));
         clearFiltersBtn.setBackground(new Color(230, 235, 242));
@@ -49,21 +50,28 @@ public class Main extends JFrame {
         clearFiltersBtn.setFocusPainted(false);
         clearFiltersBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         clearFiltersBtn.addActionListener(e -> clearFilters());
-        topPanel.add(clearFiltersBtn);
+        searchGroup.add(clearFiltersBtn);
+        topPanel.add(searchGroup);
 
-        topPanel.add(createStyledLabel("FROM:", labelFont));
+        JPanel fromGroup = createFilterGroupPanel();
+        fromGroup.add(createStyledLabel("FROM:", labelFont));
         txtFrom = new JTextField(10);
-        topPanel.add(txtFrom);
-        topPanel.add(createClearFieldButton(txtFrom));
+        fromGroup.add(txtFrom);
+        fromGroup.add(createClearFieldButton(txtFrom));
+        topPanel.add(fromGroup);
 
-        topPanel.add(createStyledLabel("TO:", labelFont));
+        JPanel toGroup = createFilterGroupPanel();
+        toGroup.add(createStyledLabel("TO:", labelFont));
         txtTo = new JTextField(10);
-        topPanel.add(txtTo);
-        topPanel.add(createClearFieldButton(txtTo));
+        toGroup.add(txtTo);
+        toGroup.add(createClearFieldButton(txtTo));
+        topPanel.add(toGroup);
 
-        topPanel.add(createStyledLabel("STATUS:", labelFont));
+        JPanel statusGroup = createFilterGroupPanel();
+        statusGroup.add(createStyledLabel("STATUS:", labelFont));
         cbStatus = new JComboBox<>(new String[] { ALL, CONF, UNCONF });
-        topPanel.add(cbStatus);
+        statusGroup.add(cbStatus);
+        topPanel.add(statusGroup);
 
         // 2. CENTER PANEL - Table
         String[] columns = { "Date", "Time", "From", "To", "Flight Number", "Status" };
@@ -183,6 +191,13 @@ public class Main extends JFrame {
                 applyFilters();
             }
         });
+    }
+
+    private JPanel createFilterGroupPanel() {
+        JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 10));
+        panel.setBackground(new Color(245, 247, 249));
+        panel.setBorder(BorderFactory.createLineBorder(new Color(200, 205, 212)));
+        return panel;
     }
 
     private JButton createClearFieldButton(JTextField field) {
