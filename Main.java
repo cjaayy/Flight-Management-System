@@ -73,11 +73,7 @@ public class Main extends JFrame {
         searchGroup.add(txtSearchFlight);
         searchGroup.add(Box.createVerticalStrut(4));
         JButton clearFiltersBtn = new JButton("CLEAR");
-        clearFiltersBtn.setFont(new Font("Segoe UI", Font.BOLD, 11));
-        clearFiltersBtn.setBackground(new Color(230, 235, 242));
-        clearFiltersBtn.setForeground(new Color(40, 40, 40));
-        clearFiltersBtn.setFocusPainted(false);
-        clearFiltersBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        styleFilterButton(clearFiltersBtn, 10, new Insets(1, 8, 1, 8));
         clearFiltersBtn.addActionListener(e -> clearFilters());
         clearFiltersBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
         clearFiltersBtn.setMaximumSize(clearFiltersBtn.getPreferredSize());
@@ -177,6 +173,11 @@ public class Main extends JFrame {
         cbAircraft.setMaximumSize(cbAircraft.getPreferredSize());
         cbAircraft.setAlignmentX(Component.CENTER_ALIGNMENT);
         aircraftGroup.add(cbAircraft);
+        aircraftGroup.add(Box.createVerticalStrut(4));
+        JButton aircraftClearBtn = createClearComboButton(cbAircraft);
+        aircraftClearBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
+        aircraftClearBtn.setMaximumSize(aircraftClearBtn.getPreferredSize());
+        aircraftGroup.add(aircraftClearBtn);
         topPanel.add(aircraftGroup);
 
         JPanel statusGroup = createFilterGroupPanel();
@@ -189,6 +190,11 @@ public class Main extends JFrame {
         cbStatus.setMaximumSize(cbStatus.getPreferredSize());
         cbStatus.setAlignmentX(Component.CENTER_ALIGNMENT);
         statusGroup.add(cbStatus);
+        statusGroup.add(Box.createVerticalStrut(4));
+        JButton statusClearBtn = createClearComboButton(cbStatus);
+        statusClearBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
+        statusClearBtn.setMaximumSize(statusClearBtn.getPreferredSize());
+        statusGroup.add(statusClearBtn);
         topPanel.add(statusGroup);
 
         String[] columns = { "Date", "Time", "From", "To", "Flight ID", "Aircraft", "Status" };
@@ -619,12 +625,7 @@ public class Main extends JFrame {
 
     private JButton createClearFieldButton(JTextField field) {
         JButton button = new JButton("CLEAR");
-        button.setFont(new Font("Segoe UI", Font.BOLD, 11));
-        button.setBackground(new Color(230, 235, 242));
-        button.setForeground(new Color(40, 40, 40));
-        button.setFocusPainted(false);
-        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        button.setMargin(new Insets(2, 6, 2, 6));
+        styleFilterButton(button, 10, new Insets(1, 8, 1, 8));
         button.addActionListener(e -> {
             if (field == null) {
                 applyFilters();
@@ -638,6 +639,42 @@ public class Main extends JFrame {
             applyFilters();
         });
         return button;
+    }
+
+    private JButton createClearComboButton(JComboBox<?> combo) {
+        JButton button = new JButton("ALL");
+        styleFilterButton(button, 10, new Insets(0, 8, 2, 8));
+        button.addActionListener(e -> {
+            if (combo == null) {
+                applyFilters();
+                return;
+            }
+            combo.setSelectedIndex(0);
+            applyFilters();
+        });
+        return button;
+    }
+
+    private void styleFilterButton(JButton button, int fontSize, Insets margin) {
+        if (button == null) {
+            return;
+        }
+        button.setFont(new Font("Segoe UI", Font.BOLD, fontSize));
+        button.setBackground(new Color(230, 235, 242));
+        button.setForeground(new Color(40, 40, 40));
+        button.setFocusPainted(false);
+        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        Insets appliedMargin = margin == null ? new Insets(1, 8, 1, 8) : margin;
+        button.setMargin(appliedMargin);
+
+        FontMetrics fm = button.getFontMetrics(button.getFont());
+        Insets currentMargin = button.getMargin();
+        int textWidth = fm.stringWidth(button.getText());
+        int minWidth = textWidth + currentMargin.left + currentMargin.right + 12;
+        Dimension size = button.getPreferredSize();
+        Dimension finalSize = new Dimension(Math.max(size.width, minWidth), size.height);
+        button.setPreferredSize(finalSize);
+        button.setMinimumSize(finalSize);
     }
 
     private void clearFilters() {
