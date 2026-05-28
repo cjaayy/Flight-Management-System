@@ -844,6 +844,14 @@ public class Main extends JFrame {
             return;
         }
 
+        if (newFrom.equalsIgnoreCase(newTo)) {
+            JOptionPane.showMessageDialog(this,
+                    "From and To cannot be the same place.",
+                    "Invalid Route",
+                    JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
         if (newDateText.isEmpty() || newTimeText.isEmpty() || newFrom.isEmpty() || newTo.isEmpty()
                 || newAircraft.isEmpty() || newStatus.isEmpty()) {
             JOptionPane.showMessageDialog(this,
@@ -989,6 +997,7 @@ public class Main extends JFrame {
             addLettersOnlyFilter(editor, fieldName);
         }
         installComboAutoComplete(combo, locationOptions);
+        installComboEnterSelect(combo);
         if (selectedValue != null && !selectedValue.isBlank()) {
             combo.setSelectedItem(selectedValue);
         }
@@ -1056,6 +1065,27 @@ public class Main extends JFrame {
             @Override
             public void changedUpdate(DocumentEvent e) {
                 updateModel();
+            }
+        });
+    }
+
+    private void installComboEnterSelect(JComboBox<String> combo) {
+        if (combo == null) {
+            return;
+        }
+        Component editorComponent = combo.getEditor().getEditorComponent();
+        if (!(editorComponent instanceof JTextField editor)) {
+            return;
+        }
+        editor.addActionListener(e -> {
+            if (combo.isPopupVisible()) {
+                ComboBoxModel<String> model = combo.getModel();
+                if (model.getSize() > 0) {
+                    combo.setSelectedItem(model.getElementAt(0));
+                }
+                combo.setPopupVisible(false);
+            } else {
+                combo.setSelectedItem(editor.getText().trim());
             }
         });
     }
