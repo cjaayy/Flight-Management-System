@@ -31,6 +31,8 @@ public class Main extends JFrame {
     private JTextField txtSearchFlight;
     private JTextField txtFrom;
     private JTextField txtTo;
+    private JTextField txtDate;
+    private JTextField txtTime;
     private final JLabel lblCount;
 
     public Main() {
@@ -42,17 +44,25 @@ public class Main extends JFrame {
         setLayout(new BorderLayout(10, 10));
 
         // 1. TOP AREA - Header + Filters
-        JPanel topPanel = new JPanel(new GridLayout(1, 4, 0, 0));
+        JPanel topPanel = new JPanel(new GridLayout(1, 6, 0, 0));
         topPanel.setBackground(new Color(245, 247, 249));
         topPanel.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, Color.LIGHT_GRAY));
 
         Font labelFont = new Font("Segoe UI", Font.BOLD, 12);
 
         JPanel searchGroup = createFilterGroupPanel();
-        searchGroup.add(createStyledLabel("FLIGHT ID:", labelFont));
+        searchGroup.setLayout(new BoxLayout(searchGroup, BoxLayout.Y_AXIS));
+        JLabel searchLabel = createStyledLabel("FLIGHT ID:", labelFont);
+        searchLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        searchGroup.add(searchLabel);
+        searchGroup.add(Box.createVerticalStrut(4));
         txtSearchFlight = new JTextField(10);
+        txtSearchFlight.setHorizontalAlignment(SwingConstants.CENTER);
+        txtSearchFlight.setMaximumSize(txtSearchFlight.getPreferredSize());
         addFlightIdFilter(txtSearchFlight);
+        txtSearchFlight.setAlignmentX(Component.CENTER_ALIGNMENT);
         searchGroup.add(txtSearchFlight);
+        searchGroup.add(Box.createVerticalStrut(4));
         JButton clearFiltersBtn = new JButton("CLEAR");
         clearFiltersBtn.setFont(new Font("Segoe UI", Font.BOLD, 11));
         clearFiltersBtn.setBackground(new Color(230, 235, 242));
@@ -60,32 +70,97 @@ public class Main extends JFrame {
         clearFiltersBtn.setFocusPainted(false);
         clearFiltersBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         clearFiltersBtn.addActionListener(e -> clearFilters());
+        clearFiltersBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
+        clearFiltersBtn.setMaximumSize(clearFiltersBtn.getPreferredSize());
         searchGroup.add(clearFiltersBtn);
         topPanel.add(searchGroup);
 
         JPanel fromGroup = createFilterGroupPanel();
-        fromGroup.add(createStyledLabel("FROM:", labelFont));
+        fromGroup.setLayout(new BoxLayout(fromGroup, BoxLayout.Y_AXIS));
+        JLabel fromLabel = createStyledLabel("FROM:", labelFont);
+        fromLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        fromGroup.add(fromLabel);
+        fromGroup.add(Box.createVerticalStrut(4));
         txtFrom = new JTextField(10);
+        txtFrom.setHorizontalAlignment(SwingConstants.CENTER);
+        txtFrom.setMaximumSize(txtFrom.getPreferredSize());
         addLettersOnlyFilter(txtFrom, "From");
+        txtFrom.setAlignmentX(Component.CENTER_ALIGNMENT);
         fromGroup.add(txtFrom);
-        fromGroup.add(createClearFieldButton(txtFrom));
+        fromGroup.add(Box.createVerticalStrut(4));
+        JButton fromClearBtn = createClearFieldButton(txtFrom);
+        fromClearBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
+        fromClearBtn.setMaximumSize(fromClearBtn.getPreferredSize());
+        fromGroup.add(fromClearBtn);
         topPanel.add(fromGroup);
 
         JPanel toGroup = createFilterGroupPanel();
-        toGroup.add(createStyledLabel("TO:", labelFont));
+        toGroup.setLayout(new BoxLayout(toGroup, BoxLayout.Y_AXIS));
+        JLabel toLabel = createStyledLabel("TO:", labelFont);
+        toLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        toGroup.add(toLabel);
+        toGroup.add(Box.createVerticalStrut(4));
         txtTo = new JTextField(10);
+        txtTo.setHorizontalAlignment(SwingConstants.CENTER);
+        txtTo.setMaximumSize(txtTo.getPreferredSize());
         addLettersOnlyFilter(txtTo, "To");
+        txtTo.setAlignmentX(Component.CENTER_ALIGNMENT);
         toGroup.add(txtTo);
-        toGroup.add(createClearFieldButton(txtTo));
+        toGroup.add(Box.createVerticalStrut(4));
+        JButton toClearBtn = createClearFieldButton(txtTo);
+        toClearBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
+        toClearBtn.setMaximumSize(toClearBtn.getPreferredSize());
+        toGroup.add(toClearBtn);
         topPanel.add(toGroup);
 
+        JPanel dateGroup = createFilterGroupPanel();
+        dateGroup.setLayout(new BoxLayout(dateGroup, BoxLayout.Y_AXIS));
+        JLabel dateLabel = createStyledLabel("DATE:", labelFont);
+        dateLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        dateGroup.add(dateLabel);
+        dateGroup.add(Box.createVerticalStrut(4));
+        txtDate = new JTextField(10);
+        txtDate.setHorizontalAlignment(SwingConstants.CENTER);
+        txtDate.setMaximumSize(txtDate.getPreferredSize());
+        txtDate.setAlignmentX(Component.CENTER_ALIGNMENT);
+        dateGroup.add(txtDate);
+        dateGroup.add(Box.createVerticalStrut(4));
+        JButton dateClearBtn = createClearFieldButton(txtDate);
+        dateClearBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
+        dateClearBtn.setMaximumSize(dateClearBtn.getPreferredSize());
+        dateGroup.add(dateClearBtn);
+        topPanel.add(dateGroup);
+
+        JPanel timeGroup = createFilterGroupPanel();
+        timeGroup.setLayout(new BoxLayout(timeGroup, BoxLayout.Y_AXIS));
+        JLabel timeLabel = createStyledLabel("TIME:", labelFont);
+        timeLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        timeGroup.add(timeLabel);
+        timeGroup.add(Box.createVerticalStrut(4));
+        txtTime = new JTextField(10);
+        txtTime.setHorizontalAlignment(SwingConstants.CENTER);
+        txtTime.setMaximumSize(txtTime.getPreferredSize());
+        txtTime.setAlignmentX(Component.CENTER_ALIGNMENT);
+        timeGroup.add(txtTime);
+        timeGroup.add(Box.createVerticalStrut(4));
+        JButton timeClearBtn = createClearFieldButton(txtTime);
+        timeClearBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
+        timeClearBtn.setMaximumSize(timeClearBtn.getPreferredSize());
+        timeGroup.add(timeClearBtn);
+        topPanel.add(timeGroup);
+
         JPanel statusGroup = createFilterGroupPanel();
-        statusGroup.add(createStyledLabel("STATUS:", labelFont));
+        statusGroup.setLayout(new BoxLayout(statusGroup, BoxLayout.Y_AXIS));
+        JLabel statusLabel = createStyledLabel("STATUS:", labelFont);
+        statusLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        statusGroup.add(statusLabel);
+        statusGroup.add(Box.createVerticalStrut(4));
         cbStatus = new JComboBox<>(new String[] { ALL, CONF, UNCONF });
+        cbStatus.setMaximumSize(cbStatus.getPreferredSize());
+        cbStatus.setAlignmentX(Component.CENTER_ALIGNMENT);
         statusGroup.add(cbStatus);
         topPanel.add(statusGroup);
 
-        // 2. CENTER PANEL - Table
         String[] columns = { "Date", "Time", "From", "To", "Flight ID", "Status" };
         tableModel = new DefaultTableModel(columns, 0) {
             @Override
@@ -146,6 +221,8 @@ public class Main extends JFrame {
         addLiveFilter(txtSearchFlight);
         addLiveFilter(txtFrom);
         addLiveFilter(txtTo);
+        addLiveFilter(txtDate);
+        addLiveFilter(txtTime);
         cbStatus.addActionListener(e -> applyFilters());
 
         JPanel northPanel = new JPanel(new BorderLayout());
@@ -213,6 +290,7 @@ public class Main extends JFrame {
         JLabel label = new JLabel(text);
         label.setFont(font);
         label.setForeground(new Color(80, 80, 80));
+        label.setHorizontalAlignment(SwingConstants.CENTER);
         return label;
     }
 
@@ -349,6 +427,8 @@ public class Main extends JFrame {
         txtSearchFlight.setText("");
         txtFrom.setText("");
         txtTo.setText("");
+        txtDate.setText("");
+        txtTime.setText("");
         cbStatus.setSelectedIndex(0);
         applyFilters();
     }
@@ -421,6 +501,12 @@ public class Main extends JFrame {
         String toText = txtTo.getText().trim();
         if (!toText.isEmpty())
             filters.add(RowFilter.regexFilter("(?i)" + Pattern.quote(toText), 3));
+        String dateText = txtDate.getText().trim();
+        if (!dateText.isEmpty())
+            filters.add(RowFilter.regexFilter("(?i)" + Pattern.quote(dateText), 0));
+        String timeText = txtTime.getText().trim();
+        if (!timeText.isEmpty())
+            filters.add(RowFilter.regexFilter("(?i)" + Pattern.quote(timeText), 1));
         if (cbStatus.getSelectedIndex() > 0)
             filters.add(RowFilter.regexFilter("^" + cbStatus.getSelectedItem() + "$", 5));
 
