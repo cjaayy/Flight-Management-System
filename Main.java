@@ -17,11 +17,6 @@ public class Main extends JFrame {
     private static final String CONF = "Confirmed";
     private static final String UNCONF = "Unconfirmed";
 
-    // Update these with your MySQL settings.
-    private static final String DB_URL = "jdbc:mysql://localhost:3306/flight_management?useSSL=false&serverTimezone=UTC";
-    private static final String DB_USER = "root";
-    private static final String DB_PASSWORD = "Javaprojects@01";
-
     private final JTable flightTable;
     private final DefaultTableModel tableModel;
     private JComboBox<String> cbFrom, cbTo, cbStatus;
@@ -114,11 +109,14 @@ public class Main extends JFrame {
         tableModel.setRowCount(0);
 
         String sql = "SELECT flight_date, flight_time, origin, destination, flight_number, status "
-            + "FROM flights ORDER BY flight_date, flight_time";
+                + "FROM flights ORDER BY flight_date, flight_time";
 
-        try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
-            Statement stmt = conn.createStatement();
-            ResultSet rs = stmt.executeQuery(sql)) {
+        try (Connection conn = DriverManager.getConnection(
+                DatabaseConfig.DB_URL,
+                DatabaseConfig.DB_USER,
+                DatabaseConfig.DB_PASSWORD);
+                Statement stmt = conn.createStatement();
+                ResultSet rs = stmt.executeQuery(sql)) {
 
             while (rs.next()) {
                 Date date = rs.getDate("flight_date");
@@ -129,12 +127,12 @@ public class Main extends JFrame {
                 String currentStatus = rs.getString("status");
 
                 tableModel.addRow(new Object[] {
-                    date != null ? date.toString() : "",
-                    time != null ? time.toString() : "",
-                    fromLoc,
-                    toLoc,
-                    flightNum,
-                    currentStatus
+                        date != null ? date.toString() : "",
+                        time != null ? time.toString() : "",
+                        fromLoc,
+                        toLoc,
+                        flightNum,
+                        currentStatus
                 });
             }
 
@@ -151,9 +149,9 @@ public class Main extends JFrame {
 
     private void showDatabaseError(SQLException e) {
         JOptionPane.showMessageDialog(this,
-            "Database error: " + e.getMessage() + "\nRun schema.sql and update DB settings.",
-            "Database Error",
-            JOptionPane.ERROR_MESSAGE);
+                "Database error: " + e.getMessage() + "\nRun schema.sql and update DatabaseConfig.",
+                "Database Error",
+                JOptionPane.ERROR_MESSAGE);
     }
 
     private void generate50Records() {
