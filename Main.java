@@ -7,7 +7,10 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.JTableHeader;
+import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableRowSorter;
 
 public class Main extends JFrame {
@@ -85,7 +88,37 @@ public class Main extends JFrame {
         flightTable = new JTable(tableModel);
         flightTable.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         flightTable.setRowHeight(30);
-        flightTable.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 13));
+        flightTable.setIntercellSpacing(new Dimension(1, 1));
+        flightTable.setGridColor(new Color(200, 205, 212));
+        flightTable.setShowVerticalLines(true);
+        flightTable.setShowHorizontalLines(true);
+
+        DefaultTableCellRenderer centeredRenderer = new DefaultTableCellRenderer();
+        centeredRenderer.setHorizontalAlignment(SwingConstants.CENTER);
+        for (int i = 0; i < flightTable.getColumnCount(); i++) {
+            flightTable.getColumnModel().getColumn(i).setCellRenderer(centeredRenderer);
+        }
+
+        JTableHeader tableHeader = flightTable.getTableHeader();
+        tableHeader.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        tableHeader.setBackground(new Color(245, 247, 249));
+        tableHeader.setForeground(new Color(60, 60, 60));
+        tableHeader.setReorderingAllowed(false);
+        tableHeader.setResizingAllowed(false);
+        TableCellRenderer baseHeaderRenderer = tableHeader.getDefaultRenderer();
+        tableHeader.setDefaultRenderer((table, value, isSelected, hasFocus, row, column) -> {
+            Component c = baseHeaderRenderer.getTableCellRendererComponent(
+                    table, value, isSelected, hasFocus, row, column);
+            if (c instanceof JComponent) {
+                int right = column == table.getColumnCount() - 1 ? 0 : 1;
+                ((JComponent) c).setBorder(BorderFactory.createMatteBorder(0, 0, 1, right,
+                        new Color(200, 205, 212)));
+                if (c instanceof JLabel) {
+                    ((JLabel) c).setHorizontalAlignment(SwingConstants.CENTER);
+                }
+            }
+            return c;
+        });
 
         JScrollPane scrollPane = new JScrollPane(flightTable);
         scrollPane.setBorder(new EmptyBorder(10, 20, 10, 20));
