@@ -2,6 +2,7 @@ import java.awt.*;
 import java.awt.event.*;
 import java.sql.*;
 import java.text.ParseException;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -43,6 +44,7 @@ public class Main extends JFrame {
     private JFormattedTextField txtDate;
     private JFormattedTextField txtTime;
     private final JLabel lblCount;
+    private JButton editBtn;
 
     public Main() {
         setTitle("Flight Management System");
@@ -212,6 +214,7 @@ public class Main extends JFrame {
         flightTable.setGridColor(new Color(200, 205, 212));
         flightTable.setShowVerticalLines(true);
         flightTable.setShowHorizontalLines(true);
+        flightTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
         DefaultTableCellRenderer centeredRenderer = new DefaultTableCellRenderer();
         centeredRenderer.setHorizontalAlignment(SwingConstants.CENTER);
@@ -247,8 +250,10 @@ public class Main extends JFrame {
         // 3. BOTTOM PANEL - Records Found
         JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 30, 10));
         bottomPanel.setBackground(Color.WHITE);
+        editBtn = createEditButton();
         lblCount = new JLabel("Total Records: 0");
         lblCount.setFont(new Font("Segoe UI", Font.ITALIC, 13));
+        bottomPanel.add(editBtn);
         bottomPanel.add(lblCount);
 
         loadFlightsFromDatabase();
@@ -270,6 +275,12 @@ public class Main extends JFrame {
         add(northPanel, BorderLayout.NORTH);
         add(scrollPane, BorderLayout.CENTER);
         add(bottomPanel, BorderLayout.SOUTH);
+
+        flightTable.getSelectionModel().addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting() && editBtn != null) {
+                editBtn.setEnabled(flightTable.getSelectedRow() >= 0);
+            }
+        });
     }
 
     private JComponent createHeaderPanel() {
@@ -655,6 +666,19 @@ public class Main extends JFrame {
         return button;
     }
 
+    private JButton createEditButton() {
+        JButton button = new JButton("EDIT");
+        button.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        button.setBackground(new Color(230, 235, 242));
+        button.setForeground(new Color(40, 40, 40));
+        button.setFocusPainted(false);
+        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        button.setMargin(new Insets(4, 12, 4, 12));
+        button.setEnabled(false);
+        button.addActionListener(e -> openEditDialog());
+        return button;
+    }
+
     private void styleFilterButton(JButton button, int fontSize, Insets margin) {
         if (button == null) {
             return;
@@ -686,6 +710,200 @@ public class Main extends JFrame {
         cbAircraft.setSelectedIndex(0);
         cbStatus.setSelectedIndex(0);
         applyFilters();
+    }
+
+    private void openEditDialog() {
+        int viewRow = flightTable.getSelectedRow();
+        if (viewRow < 0) {
+            return;
+        }
+
+        int modelRow = flightTable.convertRowIndexToModel(viewRow);
+        String dateValue = String.valueOf(tableModel.getValueAt(modelRow, 0));
+        String timeValue = String.valueOf(tableModel.getValueAt(modelRow, 1));
+        String fromValue = String.valueOf(tableModel.getValueAt(modelRow, 2));
+        String toValue = String.valueOf(tableModel.getValueAt(modelRow, 3));
+        String flightIdValue = String.valueOf(tableModel.getValueAt(modelRow, 4));
+        String aircraftValue = String.valueOf(tableModel.getValueAt(modelRow, 5));
+        String statusValue = String.valueOf(tableModel.getValueAt(modelRow, 6));
+
+        JTextField flightIdField = new JTextField(flightIdValue);
+        flightIdField.setEditable(false);
+        flightIdField.setBackground(new Color(245, 247, 249));
+
+        JFormattedTextField dateField = createMaskedField("####-##-##", DATE_PLACEHOLDER, 10, "-",
+                new int[] { 4, 7, 10 }, this::showDateError);
+        dateField.setText(dateValue);
+        JFormattedTextField timeField = createMaskedField("##:##", TIME_PLACEHOLDER, 10, ":",
+                new int[] { 2, 5 }, this::showTimeError);
+        timeField.setText(formatTimeForEdit(timeValue));
+        JTextField fromField = new JTextField(fromValue);
+        JTextField toField = new JTextField(toValue);
+        JComboBox<String> aircraftField = new JComboBox<>(getAircraftOptions());
+        if (aircraftValue != null && !aircraftValue.isBlank()) {
+            boolean found = false;
+            ComboBoxModel<String> model = aircraftField.getModel();
+            for (int i = 0; i < model.getSize(); i++) {
+                if (aircraftValue.equals(model.getElementAt(i))) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                aircraftField.insertItemAt(aircraftValue, 0);
+            }
+            aircraftField.setSelectedItem(aircraftValue);
+        }
+        JComboBox<String> statusField = new JComboBox<>(new String[] { CONF, UNCONF, CANCEL });
+        statusField.setSelectedItem(statusValue);
+
+        addLettersOnlyFilter(fromField, "From");
+        addLettersOnlyFilter(toField, "To");
+
+        JPanel form = new JPanel(new GridLayout(0, 2, 10, 8));
+        form.setBorder(new EmptyBorder(10, 10, 10, 10));
+        form.add(new JLabel("Flight ID:"));
+        form.add(flightIdField);
+        form.add(new JLabel("Date (YYYY-MM-DD):"));
+        form.add(dateField);
+        form.add(new JLabel("Time (HH:MM):"));
+        form.add(timeField);
+        form.add(new JLabel("From:"));
+        form.add(fromField);
+        form.add(new JLabel("To:"));
+        form.add(toField);
+        form.add(new JLabel("Aircraft:"));
+        form.add(aircraftField);
+        form.add(new JLabel("Status:"));
+        form.add(statusField);
+
+        int result = JOptionPane.showConfirmDialog(this, form, "Edit Flight",
+                JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+        if (result != JOptionPane.OK_OPTION) {
+            return;
+        }
+
+        String newDateText = getMaskedFilterText(dateField);
+        String newTimeText = getMaskedFilterText(timeField);
+        String newFrom = fromField.getText().trim();
+        String newTo = toField.getText().trim();
+        String newAircraft = aircraftField.getSelectedItem() == null ? ""
+                : aircraftField.getSelectedItem().toString().trim();
+        String newStatus = statusField.getSelectedItem() == null ? "" : statusField.getSelectedItem().toString();
+
+        if (newDateText.isEmpty() || newTimeText.isEmpty() || newFrom.isEmpty() || newTo.isEmpty()
+                || newAircraft.isEmpty() || newStatus.isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                    "All fields except Flight ID are required.",
+                    "Missing Data",
+                    JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        Date sqlDate;
+        Time sqlTime;
+        try {
+            sqlDate = Date.valueOf(newDateText);
+        } catch (IllegalArgumentException ex) {
+            JOptionPane.showMessageDialog(this,
+                    "Date must be in YYYY-MM-DD format.",
+                    "Invalid Date",
+                    JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        LocalDate selectedDate = sqlDate.toLocalDate();
+        LocalDate today = LocalDate.now();
+        if (selectedDate.isBefore(today)) {
+            JOptionPane.showMessageDialog(this,
+                    "Date must be today or later.",
+                    "Invalid Date",
+                    JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        try {
+            sqlTime = Time.valueOf(normalizeTimeInput(newTimeText));
+        } catch (IllegalArgumentException ex) {
+            JOptionPane.showMessageDialog(this,
+                    "Time must be in HH:MM format.",
+                    "Invalid Time",
+                    JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        if (updateFlightRecord(flightIdValue, sqlDate, sqlTime, newFrom, newTo, newAircraft, newStatus)) {
+            loadFlightsFromDatabase();
+            applyFilters();
+        }
+    }
+
+    private String formatTimeForEdit(String timeValue) {
+        if (timeValue == null) {
+            return "";
+        }
+        String trimmed = timeValue.trim();
+        if (trimmed.length() >= 5) {
+            return trimmed.substring(0, 5);
+        }
+        return trimmed;
+    }
+
+    private String normalizeTimeInput(String input) {
+        String trimmed = input == null ? "" : input.trim();
+        if (trimmed.matches("^\\d{2}:\\d{2}$")) {
+            return trimmed + ":00";
+        }
+        return trimmed;
+    }
+
+    private boolean updateFlightRecord(String flightId, Date date, Time time,
+            String origin, String destination, String aircraft, String status) {
+        String sql = "UPDATE flights SET flight_date = ?, flight_time = ?, origin = ?, destination = ?,"
+                + " aircraft = ?, status = ? WHERE flight_number = ?";
+
+        try (Connection conn = DriverManager.getConnection(
+                DatabaseConfig.DB_URL,
+                DatabaseConfig.DB_USER,
+                DatabaseConfig.DB_PASSWORD);
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setDate(1, date);
+            stmt.setTime(2, time);
+            stmt.setString(3, origin);
+            stmt.setString(4, destination);
+            stmt.setString(5, aircraft);
+            stmt.setString(6, status);
+            stmt.setString(7, flightId);
+
+            int updated = stmt.executeUpdate();
+            if (updated == 0) {
+                JOptionPane.showMessageDialog(this,
+                        "No records were updated. Please try again.",
+                        "Update Failed",
+                        JOptionPane.WARNING_MESSAGE);
+                return false;
+            }
+            return true;
+        } catch (SQLException e) {
+            showDatabaseError(e);
+            return false;
+        }
+    }
+
+    private String[] getAircraftOptions() {
+        Set<String> aircraftSet = new TreeSet<>();
+        for (int row = 0; row < tableModel.getRowCount(); row++) {
+            Object value = tableModel.getValueAt(row, 5);
+            if (value == null) {
+                continue;
+            }
+            String aircraft = value.toString().trim();
+            if (!aircraft.isEmpty()) {
+                aircraftSet.add(aircraft);
+            }
+        }
+        return aircraftSet.toArray(String[]::new);
     }
 
     private void loadFlightsFromDatabase() {
