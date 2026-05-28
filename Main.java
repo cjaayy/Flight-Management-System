@@ -12,12 +12,18 @@ import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableRowSorter;
+import javax.swing.text.AbstractDocument;
+import javax.swing.text.AttributeSet;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.DocumentFilter;
 
 public class Main extends JFrame {
 
     private static final String ALL = "All";
     private static final String CONF = "Confirmed";
     private static final String UNCONF = "Unconfirmed";
+    private static final Pattern FLIGHT_ID_PATTERN = Pattern.compile("^[A-Za-z0-9]*$");
+    private static final Pattern LETTERS_ONLY_PATTERN = Pattern.compile("^[A-Za-z]*$");
 
     private final JTable flightTable;
     private final DefaultTableModel tableModel;
@@ -43,8 +49,9 @@ public class Main extends JFrame {
         Font labelFont = new Font("Segoe UI", Font.BOLD, 12);
 
         JPanel searchGroup = createFilterGroupPanel();
-        searchGroup.add(createStyledLabel("SEARCH FLIGHT #:", labelFont));
+        searchGroup.add(createStyledLabel("FLIGHT ID:", labelFont));
         txtSearchFlight = new JTextField(10);
+        addFlightIdFilter(txtSearchFlight);
         searchGroup.add(txtSearchFlight);
         JButton clearFiltersBtn = new JButton("CLEAR");
         clearFiltersBtn.setFont(new Font("Segoe UI", Font.BOLD, 11));
@@ -59,6 +66,7 @@ public class Main extends JFrame {
         JPanel fromGroup = createFilterGroupPanel();
         fromGroup.add(createStyledLabel("FROM:", labelFont));
         txtFrom = new JTextField(10);
+        addLettersOnlyFilter(txtFrom, "From");
         fromGroup.add(txtFrom);
         fromGroup.add(createClearFieldButton(txtFrom));
         topPanel.add(fromGroup);
@@ -66,6 +74,7 @@ public class Main extends JFrame {
         JPanel toGroup = createFilterGroupPanel();
         toGroup.add(createStyledLabel("TO:", labelFont));
         txtTo = new JTextField(10);
+        addLettersOnlyFilter(txtTo, "To");
         toGroup.add(txtTo);
         toGroup.add(createClearFieldButton(txtTo));
         topPanel.add(toGroup);
@@ -77,7 +86,7 @@ public class Main extends JFrame {
         topPanel.add(statusGroup);
 
         // 2. CENTER PANEL - Table
-        String[] columns = { "Date", "Time", "From", "To", "Flight Number", "Status" };
+        String[] columns = { "Date", "Time", "From", "To", "Flight ID", "Status" };
         tableModel = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -109,12 +118,12 @@ public class Main extends JFrame {
         tableHeader.setDefaultRenderer((table, value, isSelected, hasFocus, row, column) -> {
             Component c = baseHeaderRenderer.getTableCellRendererComponent(
                     table, value, isSelected, hasFocus, row, column);
-            if (c instanceof JComponent) {
+            if (c instanceof JComponent jc) {
                 int right = column == table.getColumnCount() - 1 ? 0 : 1;
-                ((JComponent) c).setBorder(BorderFactory.createMatteBorder(0, 0, 1, right,
+                jc.setBorder(BorderFactory.createMatteBorder(0, 0, 1, right,
                         new Color(200, 205, 212)));
-                if (c instanceof JLabel) {
-                    ((JLabel) c).setHorizontalAlignment(SwingConstants.CENTER);
+                if (jc instanceof JLabel jl) {
+                    jl.setHorizontalAlignment(SwingConstants.CENTER);
                 }
             }
             return c;
@@ -224,6 +233,94 @@ public class Main extends JFrame {
                 applyFilters();
             }
         });
+    }
+
+    private void addFlightIdFilter(JTextField field) {
+        AbstractDocument doc = (AbstractDocument) field.getDocument();
+        doc.setDocumentFilter(new DocumentFilter() {
+            @Override
+            public void insertString(FilterBypass fb, int offset, String string, AttributeSet attr)
+                    throws BadLocationException {
+                if (string == null) {
+                    return;
+                }
+                String newText = new StringBuilder(fb.getDocument().getText(0, fb.getDocument().getLength()))
+                        .insert(offset, string)
+                        .toString();
+                if (FLIGHT_ID_PATTERN.matcher(newText).matches()) {
+                    super.insertString(fb, offset, string, attr);
+                } else {
+                    showFlightIdError();
+                }
+            }
+
+            @Override
+            public void replace(FilterBypass fb, int offset, int length, String text, AttributeSet attrs)
+                    throws BadLocationException {
+                String replacement = text == null ? "" : text;
+                String current = fb.getDocument().getText(0, fb.getDocument().getLength());
+                String newText = new StringBuilder(current)
+                        .replace(offset, offset + length, replacement)
+                        .toString();
+                if (FLIGHT_ID_PATTERN.matcher(newText).matches()) {
+                    super.replace(fb, offset, length, text, attrs);
+                } else {
+                    showFlightIdError();
+                }
+            }
+        });
+    }
+
+    private void addLettersOnlyFilter(JTextField field, String fieldName) {
+        AbstractDocument doc = (AbstractDocument) field.getDocument();
+        doc.setDocumentFilter(new DocumentFilter() {
+            @Override
+            public void insertString(FilterBypass fb, int offset, String string, AttributeSet attr)
+                    throws BadLocationException {
+                if (string == null) {
+                    return;
+                }
+                String newText = new StringBuilder(fb.getDocument().getText(0, fb.getDocument().getLength()))
+                        .insert(offset, string)
+                        .toString();
+                if (LETTERS_ONLY_PATTERN.matcher(newText).matches()) {
+                    super.insertString(fb, offset, string, attr);
+                } else {
+                    showLettersOnlyError(fieldName);
+                }
+            }
+
+            @Override
+            public void replace(FilterBypass fb, int offset, int length, String text, AttributeSet attrs)
+                    throws BadLocationException {
+                String replacement = text == null ? "" : text;
+                String current = fb.getDocument().getText(0, fb.getDocument().getLength());
+                String newText = new StringBuilder(current)
+                        .replace(offset, offset + length, replacement)
+                        .toString();
+                if (LETTERS_ONLY_PATTERN.matcher(newText).matches()) {
+                    super.replace(fb, offset, length, text, attrs);
+                } else {
+                    showLettersOnlyError(fieldName);
+                }
+            }
+        });
+    }
+
+    private void showFlightIdError() {
+        Toolkit.getDefaultToolkit().beep();
+        JOptionPane.showMessageDialog(this,
+                "Only letters and numbers are allowed for Flight ID.",
+                "Invalid Flight ID",
+                JOptionPane.WARNING_MESSAGE);
+    }
+
+    private void showLettersOnlyError(String fieldName) {
+        Toolkit.getDefaultToolkit().beep();
+        JOptionPane.showMessageDialog(this,
+                "Only letters are allowed for " + fieldName + ".",
+                "Invalid Input",
+                JOptionPane.WARNING_MESSAGE);
     }
 
     private JPanel createFilterGroupPanel() {
