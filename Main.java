@@ -30,7 +30,7 @@ public class Main extends JFrame {
         getContentPane().setBackground(Color.WHITE);
         setLayout(new BorderLayout(10, 10));
 
-        // 1. TOP PANEL - Middle Controls
+        // 1. TOP AREA - Header + Filters
         JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 20));
         topPanel.setBackground(new Color(245, 247, 249));
         topPanel.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, Color.LIGHT_GRAY));
@@ -92,9 +92,65 @@ public class Main extends JFrame {
         applyBtn.addActionListener(e -> applyFilters());
         txtSearchFlight.addActionListener(e -> applyFilters());
 
-        add(topPanel, BorderLayout.NORTH);
+        JPanel northPanel = new JPanel(new BorderLayout());
+        northPanel.setBackground(Color.WHITE);
+        northPanel.add(createHeaderPanel(), BorderLayout.NORTH);
+        northPanel.add(topPanel, BorderLayout.SOUTH);
+
+        add(northPanel, BorderLayout.NORTH);
         add(scrollPane, BorderLayout.CENTER);
         add(bottomPanel, BorderLayout.SOUTH);
+    }
+
+    private JComponent createHeaderPanel() {
+        JPanel header = new JPanel(new BorderLayout(10, 0));
+        header.setBackground(new Color(214, 233, 248));
+        header.setBorder(new EmptyBorder(18, 24, 18, 24));
+
+        JLabel logo = createHeaderIconLabel();
+
+        JLabel building = createHeaderBuildingLabel();
+
+        header.add(logo, BorderLayout.WEST);
+        header.add(building, BorderLayout.EAST);
+        return header;
+    }
+
+    private JLabel createHeaderIconLabel() {
+        String iconPath = "assets/icons/airplane.png";
+        ImageIcon icon = new ImageIcon(iconPath);
+        JLabel label = new JLabel();
+        label.setOpaque(false);
+
+        if (icon.getIconWidth() > 0 && icon.getIconHeight() > 0) {
+            int targetHeight = 48;
+            int targetWidth = (int) Math.round((double) icon.getIconWidth() / icon.getIconHeight()
+                    * targetHeight);
+            Image scaled = icon.getImage().getScaledInstance(targetWidth, targetHeight, Image.SCALE_SMOOTH);
+            label.setIcon(new ImageIcon(scaled));
+        }
+
+        label.setPreferredSize(new Dimension(220, 60));
+        return label;
+    }
+
+    private JLabel createHeaderBuildingLabel() {
+        String iconPath = "assets/icons/new-york.png";
+        ImageIcon icon = new ImageIcon(iconPath);
+        JLabel label = new JLabel();
+        label.setOpaque(false);
+
+        if (icon.getIconWidth() > 0 && icon.getIconHeight() > 0) {
+            int targetHeight = 48;
+            int targetWidth = (int) Math.round((double) icon.getIconWidth() / icon.getIconHeight()
+                    * targetHeight);
+            Image scaled = icon.getImage().getScaledInstance(targetWidth, targetHeight, Image.SCALE_SMOOTH);
+            label.setIcon(new ImageIcon(scaled));
+        }
+
+        label.setPreferredSize(new Dimension(140, 60));
+        label.setHorizontalAlignment(SwingConstants.RIGHT);
+        return label;
     }
 
     private JLabel createStyledLabel(String text, Font font) {
@@ -206,4 +262,5 @@ public class Main extends JFrame {
         }
         SwingUtilities.invokeLater(() -> new Main().setVisible(true));
     }
+
 }
