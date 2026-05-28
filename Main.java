@@ -2,7 +2,6 @@ import java.awt.*;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
@@ -152,26 +151,6 @@ public class Main extends JFrame {
                 "Database error: " + e.getMessage() + "\nRun schema.sql and update DatabaseConfig.",
                 "Database Error",
                 JOptionPane.ERROR_MESSAGE);
-    }
-
-    private void generate50Records() {
-        String[] locations = { PH, GER, AUS };
-        String[] statusOptions = { CONF, UNCONF };
-        Random rand = new Random();
-
-        for (int i = 1; i <= 50; i++) {
-            String date = "2026-05-" + String.format("%02d", (rand.nextInt(31)) + 1);
-            String time = String.format("%02d:%02d", rand.nextInt(24), rand.nextInt(60));
-            String fromLoc = locations[rand.nextInt(locations.length)];
-            String toLoc;
-            do {
-                toLoc = locations[rand.nextInt(locations.length)];
-            } while (fromLoc.equals(toLoc));
-            String flightNum = "FL-" + (700 + i);
-            String currentStatus = statusOptions[rand.nextInt(statusOptions.length)];
-
-            tableModel.addRow(new Object[] { date, time, fromLoc, toLoc, flightNum, currentStatus });
-        }
     }
 
     private void applyFilters() {

@@ -24,7 +24,7 @@ public class DatabaseConnectionTester {
             }
 
             DatabaseMetaData meta = conn.getMetaData();
-            boolean hasFlightsTable = false;
+            boolean hasFlightsTable;
             try (ResultSet tables = meta.getTables(null, null, "flights", new String[] { "TABLE" })) {
                 hasFlightsTable = tables.next();
             }
