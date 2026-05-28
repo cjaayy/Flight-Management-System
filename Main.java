@@ -1,7 +1,11 @@
 import java.awt.*;
+import java.awt.event.*;
 import java.sql.*;
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.regex.Pattern;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -16,23 +20,27 @@ import javax.swing.text.AbstractDocument;
 import javax.swing.text.AttributeSet;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.DocumentFilter;
+import javax.swing.text.MaskFormatter;
 
 public class Main extends JFrame {
 
     private static final String ALL = "All";
     private static final String CONF = "Confirmed";
     private static final String UNCONF = "Unconfirmed";
+    private static final String DATE_PLACEHOLDER = "YYYY-MM-DD";
+    private static final String TIME_PLACEHOLDER = "HH:MM";
     private static final Pattern FLIGHT_ID_PATTERN = Pattern.compile("^[A-Za-z0-9]*$");
     private static final Pattern LETTERS_ONLY_PATTERN = Pattern.compile("^[A-Za-z]*$");
 
     private final JTable flightTable;
     private final DefaultTableModel tableModel;
     private JComboBox<String> cbStatus;
+    private JComboBox<String> cbAircraft;
     private JTextField txtSearchFlight;
     private JTextField txtFrom;
     private JTextField txtTo;
-    private JTextField txtDate;
-    private JTextField txtTime;
+    private JFormattedTextField txtDate;
+    private JFormattedTextField txtTime;
     private final JLabel lblCount;
 
     public Main() {
@@ -44,7 +52,7 @@ public class Main extends JFrame {
         setLayout(new BorderLayout(10, 10));
 
         // 1. TOP AREA - Header + Filters
-        JPanel topPanel = new JPanel(new GridLayout(1, 6, 0, 0));
+        JPanel topPanel = new JPanel(new GridLayout(1, 7, 0, 0));
         topPanel.setBackground(new Color(245, 247, 249));
         topPanel.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, Color.LIGHT_GRAY));
 
@@ -122,7 +130,8 @@ public class Main extends JFrame {
         dateLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         dateGroup.add(dateLabel);
         dateGroup.add(Box.createVerticalStrut(4));
-        txtDate = new JTextField(10);
+        txtDate = createMaskedField("####-##-##", DATE_PLACEHOLDER, 10, "-", new int[] { 4, 7, 10 },
+                this::showDateError);
         txtDate.setHorizontalAlignment(SwingConstants.CENTER);
         txtDate.setMaximumSize(txtDate.getPreferredSize());
         txtDate.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -141,7 +150,7 @@ public class Main extends JFrame {
         timeLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         timeGroup.add(timeLabel);
         timeGroup.add(Box.createVerticalStrut(4));
-        txtTime = new JTextField(10);
+        txtTime = createMaskedField("##:##", TIME_PLACEHOLDER, 10, ":", new int[] { 2, 5 }, this::showTimeError);
         txtTime.setHorizontalAlignment(SwingConstants.CENTER);
         txtTime.setMaximumSize(txtTime.getPreferredSize());
         txtTime.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -152,6 +161,22 @@ public class Main extends JFrame {
         timeClearBtn.setMaximumSize(timeClearBtn.getPreferredSize());
         timeGroup.add(timeClearBtn);
         topPanel.add(timeGroup);
+
+        JPanel aircraftGroup = createFilterGroupPanel();
+        aircraftGroup.setLayout(new BoxLayout(aircraftGroup, BoxLayout.Y_AXIS));
+        JLabel aircraftLabel = createStyledLabel("AIRCRAFT:", labelFont);
+        aircraftLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        aircraftGroup.add(aircraftLabel);
+        aircraftGroup.add(Box.createVerticalStrut(4));
+        cbAircraft = new JComboBox<>(new String[] { ALL });
+        cbAircraft.setPrototypeDisplayValue("Airbus A350-900");
+        Dimension aircraftSize = cbAircraft.getPreferredSize();
+        cbAircraft.setPreferredSize(new Dimension(Math.max(160, aircraftSize.width), aircraftSize.height));
+        cbAircraft.setMinimumSize(cbAircraft.getPreferredSize());
+        cbAircraft.setMaximumSize(cbAircraft.getPreferredSize());
+        cbAircraft.setAlignmentX(Component.CENTER_ALIGNMENT);
+        aircraftGroup.add(cbAircraft);
+        topPanel.add(aircraftGroup);
 
         JPanel statusGroup = createFilterGroupPanel();
         statusGroup.setLayout(new BoxLayout(statusGroup, BoxLayout.Y_AXIS));
@@ -227,6 +252,7 @@ public class Main extends JFrame {
         addLiveFilter(txtTo);
         addLiveFilter(txtDate);
         addLiveFilter(txtTime);
+        cbAircraft.addActionListener(e -> applyFilters());
         cbStatus.addActionListener(e -> applyFilters());
 
         JPanel northPanel = new JPanel(new BorderLayout());
@@ -296,6 +322,154 @@ public class Main extends JFrame {
         label.setForeground(new Color(80, 80, 80));
         label.setHorizontalAlignment(SwingConstants.CENTER);
         return label;
+    }
+
+    private JFormattedTextField createMaskedField(String mask, String placeholder, int columns,
+            String allowedLiterals, int[] segmentEnds, Runnable invalidAction) {
+        MaskFormatter formatter;
+        try {
+            formatter = new MaskFormatter(mask);
+        } catch (ParseException e) {
+            throw new IllegalStateException("Invalid mask: " + mask, e);
+        }
+        formatter.setPlaceholderCharacter(' ');
+        formatter.setAllowsInvalid(false);
+        formatter.setOverwriteMode(true);
+
+        JFormattedTextField field = new HintFormattedTextField(formatter, placeholder);
+        field.setColumns(columns);
+        field.setFocusLostBehavior(JFormattedTextField.PERSIST);
+
+        boolean[] adjusting = new boolean[] { false };
+
+        field.addFocusListener(new FocusAdapter() {
+            @Override
+            public void focusGained(FocusEvent e) {
+                enforceSegmentInput(field, segmentEnds, adjusting);
+            }
+        });
+
+        field.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mousePressed(MouseEvent e) {
+                enforceSegmentInput(field, segmentEnds, adjusting);
+            }
+        });
+
+        field.addCaretListener(e -> enforceSegmentInput(field, segmentEnds, adjusting));
+
+        field.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyTyped(KeyEvent e) {
+                char c = e.getKeyChar();
+                if (Character.isDigit(c) || Character.isISOControl(c)) {
+                    return;
+                }
+                if (allowedLiterals != null && allowedLiterals.indexOf(c) >= 0) {
+                    return;
+                }
+                e.consume();
+                if (invalidAction != null) {
+                    invalidAction.run();
+                }
+            }
+        });
+
+        return field;
+    }
+
+    private boolean hasAnyDigit(String text) {
+        if (text == null || text.isEmpty()) {
+            return false;
+        }
+        for (int i = 0; i < text.length(); i++) {
+            if (Character.isDigit(text.charAt(i))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void enforceSegmentInput(JFormattedTextField field, int[] segmentEnds, boolean[] adjusting) {
+        if (field == null || adjusting[0]) {
+            return;
+        }
+        String text = field.getText();
+        if (text == null) {
+            return;
+        }
+
+        int target = -1;
+        if (segmentEnds != null && segmentEnds.length > 0) {
+            for (int end : segmentEnds) {
+                int blank = findFirstBlank(text, 0, Math.min(end, text.length()));
+                if (blank >= 0) {
+                    target = blank;
+                    break;
+                }
+            }
+        }
+
+        if (target < 0) {
+            return;
+        }
+
+        int caretPos = field.getCaretPosition();
+        if (caretPos <= target) {
+            return;
+        }
+
+        int moveTo = target;
+        adjusting[0] = true;
+        SwingUtilities.invokeLater(() -> {
+            field.setCaretPosition(moveTo);
+            adjusting[0] = false;
+        });
+    }
+
+    private int findFirstBlank(String text, int start, int end) {
+        int limit = Math.min(end, text.length());
+        for (int i = Math.max(0, start); i < limit; i++) {
+            if (text.charAt(i) == ' ') {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private final class HintFormattedTextField extends JFormattedTextField {
+        private final String placeholder;
+
+        private HintFormattedTextField(AbstractFormatter formatter, String placeholder) {
+            super(formatter);
+            this.placeholder = placeholder;
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            boolean showPlaceholder = placeholder != null && !hasAnyDigit(getText());
+            if (!showPlaceholder) {
+                super.paintComponent(g);
+                return;
+            }
+
+            Color originalForeground = getForeground();
+            setForeground(getBackground());
+            super.paintComponent(g);
+            setForeground(originalForeground);
+
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setColor(new Color(140, 140, 140));
+            g2.setFont(getFont().deriveFont(Font.ITALIC));
+            Insets insets = getInsets();
+            FontMetrics fm = g2.getFontMetrics();
+            int textWidth = fm.stringWidth(placeholder);
+            int availableWidth = getWidth() - insets.left - insets.right;
+            int x = insets.left + Math.max(0, (availableWidth - textWidth) / 2);
+            int y = (getHeight() - fm.getHeight()) / 2 + fm.getAscent();
+            g2.drawString(placeholder, x, y);
+            g2.dispose();
+        }
     }
 
     private void addLiveFilter(JTextField field) {
@@ -389,6 +563,20 @@ public class Main extends JFrame {
         });
     }
 
+    private String getMaskedFilterText(JFormattedTextField field) {
+        if (field == null) {
+            return "";
+        }
+        String text = field.getText();
+        if (!hasAnyDigit(text)) {
+            return "";
+        }
+
+        String cleaned = text.replace(" ", "");
+        cleaned = cleaned.replaceAll("[-:]+$", "");
+        return cleaned.trim();
+    }
+
     private void showFlightIdError() {
         Toolkit.getDefaultToolkit().beep();
         JOptionPane.showMessageDialog(this,
@@ -402,6 +590,22 @@ public class Main extends JFrame {
         JOptionPane.showMessageDialog(this,
                 "Only letters are allowed for " + fieldName + ".",
                 "Invalid Input",
+                JOptionPane.WARNING_MESSAGE);
+    }
+
+    private void showDateError() {
+        Toolkit.getDefaultToolkit().beep();
+        JOptionPane.showMessageDialog(this,
+                "Only numbers and dashes are allowed for Date.",
+                "Invalid Date",
+                JOptionPane.WARNING_MESSAGE);
+    }
+
+    private void showTimeError() {
+        Toolkit.getDefaultToolkit().beep();
+        JOptionPane.showMessageDialog(this,
+                "Only numbers and colons are allowed for Time.",
+                "Invalid Time",
                 JOptionPane.WARNING_MESSAGE);
     }
 
@@ -421,7 +625,15 @@ public class Main extends JFrame {
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
         button.setMargin(new Insets(2, 6, 2, 6));
         button.addActionListener(e -> {
-            field.setText("");
+            if (field == null) {
+                applyFilters();
+                return;
+            }
+            if (field instanceof JFormattedTextField formatted) {
+                formatted.setValue(null);
+            } else {
+                field.setText("");
+            }
             applyFilters();
         });
         return button;
@@ -431,8 +643,9 @@ public class Main extends JFrame {
         txtSearchFlight.setText("");
         txtFrom.setText("");
         txtTo.setText("");
-        txtDate.setText("");
-        txtTime.setText("");
+        txtDate.setValue(null);
+        txtTime.setValue(null);
+        cbAircraft.setSelectedIndex(0);
         cbStatus.setSelectedIndex(0);
         applyFilters();
     }
@@ -471,8 +684,41 @@ public class Main extends JFrame {
             }
 
             updateTotalCount(tableModel.getRowCount());
+            updateAircraftFilterOptions();
         } catch (SQLException e) {
             showDatabaseError(e);
+        }
+    }
+
+    private void updateAircraftFilterOptions() {
+        if (cbAircraft == null) {
+            return;
+        }
+
+        Object selected = cbAircraft.getSelectedItem();
+        Set<String> aircraftSet = new TreeSet<>();
+        for (int row = 0; row < tableModel.getRowCount(); row++) {
+            Object value = tableModel.getValueAt(row, 5);
+            if (value == null) {
+                continue;
+            }
+            String aircraft = value.toString().trim();
+            if (!aircraft.isEmpty()) {
+                aircraftSet.add(aircraft);
+            }
+        }
+
+        DefaultComboBoxModel<String> model = new DefaultComboBoxModel<>();
+        model.addElement(ALL);
+        for (String aircraft : aircraftSet) {
+            model.addElement(aircraft);
+        }
+        cbAircraft.setModel(model);
+
+        if (selected != null && aircraftSet.contains(selected.toString())) {
+            cbAircraft.setSelectedItem(selected.toString());
+        } else {
+            cbAircraft.setSelectedIndex(0);
         }
     }
 
@@ -507,12 +753,16 @@ public class Main extends JFrame {
         String toText = txtTo.getText().trim();
         if (!toText.isEmpty())
             filters.add(RowFilter.regexFilter("(?i)" + Pattern.quote(toText), 3));
-        String dateText = txtDate.getText().trim();
+        String dateText = getMaskedFilterText(txtDate);
         if (!dateText.isEmpty())
             filters.add(RowFilter.regexFilter("(?i)" + Pattern.quote(dateText), 0));
-        String timeText = txtTime.getText().trim();
+        String timeText = getMaskedFilterText(txtTime);
         if (!timeText.isEmpty())
             filters.add(RowFilter.regexFilter("(?i)" + Pattern.quote(timeText), 1));
+        if (cbAircraft.getSelectedIndex() > 0) {
+            String aircraftValue = cbAircraft.getSelectedItem().toString();
+            filters.add(RowFilter.regexFilter("^" + Pattern.quote(aircraftValue) + "$", 5));
+        }
         if (cbStatus.getSelectedIndex() > 0)
             filters.add(RowFilter.regexFilter("^" + cbStatus.getSelectedItem() + "$", 6));
 
