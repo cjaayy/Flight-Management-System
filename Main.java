@@ -76,6 +76,7 @@ public class Main extends JFrame {
         topPanel.add(searchGroup);
 
         JPanel fromGroup = createFilterGroupPanel();
+        fromGroup.setBorder(BorderFactory.createMatteBorder(1, 1, 1, 0, new Color(200, 205, 212)));
         fromGroup.setLayout(new BoxLayout(fromGroup, BoxLayout.Y_AXIS));
         JLabel fromLabel = createStyledLabel("FROM:", labelFont);
         fromLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -95,6 +96,7 @@ public class Main extends JFrame {
         topPanel.add(fromGroup);
 
         JPanel toGroup = createFilterGroupPanel();
+        toGroup.setBorder(BorderFactory.createMatteBorder(1, 0, 1, 1, new Color(200, 205, 212)));
         toGroup.setLayout(new BoxLayout(toGroup, BoxLayout.Y_AXIS));
         JLabel toLabel = createStyledLabel("TO:", labelFont);
         toLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -114,6 +116,7 @@ public class Main extends JFrame {
         topPanel.add(toGroup);
 
         JPanel dateGroup = createFilterGroupPanel();
+        dateGroup.setBorder(BorderFactory.createMatteBorder(1, 1, 1, 0, new Color(200, 205, 212)));
         dateGroup.setLayout(new BoxLayout(dateGroup, BoxLayout.Y_AXIS));
         JLabel dateLabel = createStyledLabel("DATE:", labelFont);
         dateLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -132,6 +135,7 @@ public class Main extends JFrame {
         topPanel.add(dateGroup);
 
         JPanel timeGroup = createFilterGroupPanel();
+        timeGroup.setBorder(BorderFactory.createMatteBorder(1, 0, 1, 1, new Color(200, 205, 212)));
         timeGroup.setLayout(new BoxLayout(timeGroup, BoxLayout.Y_AXIS));
         JLabel timeLabel = createStyledLabel("TIME:", labelFont);
         timeLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -161,7 +165,7 @@ public class Main extends JFrame {
         statusGroup.add(cbStatus);
         topPanel.add(statusGroup);
 
-        String[] columns = { "Date", "Time", "From", "To", "Flight ID", "Status" };
+        String[] columns = { "Date", "Time", "From", "To", "Flight ID", "Aircraft", "Status" };
         tableModel = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -436,7 +440,7 @@ public class Main extends JFrame {
     private void loadFlightsFromDatabase() {
         tableModel.setRowCount(0);
 
-        String sql = "SELECT flight_date, flight_time, origin, destination, flight_number, status "
+        String sql = "SELECT flight_date, flight_time, origin, destination, flight_number, aircraft, status "
                 + "FROM flights ORDER BY flight_date, flight_time";
 
         try (Connection conn = DriverManager.getConnection(
@@ -452,6 +456,7 @@ public class Main extends JFrame {
                 String fromLoc = rs.getString("origin");
                 String toLoc = rs.getString("destination");
                 String flightNum = rs.getString("flight_number");
+                String aircraft = rs.getString("aircraft");
                 String currentStatus = rs.getString("status");
 
                 tableModel.addRow(new Object[] {
@@ -460,6 +465,7 @@ public class Main extends JFrame {
                         fromLoc,
                         toLoc,
                         flightNum,
+                        aircraft,
                         currentStatus
                 });
             }
@@ -508,7 +514,7 @@ public class Main extends JFrame {
         if (!timeText.isEmpty())
             filters.add(RowFilter.regexFilter("(?i)" + Pattern.quote(timeText), 1));
         if (cbStatus.getSelectedIndex() > 0)
-            filters.add(RowFilter.regexFilter("^" + cbStatus.getSelectedItem() + "$", 5));
+            filters.add(RowFilter.regexFilter("^" + cbStatus.getSelectedItem() + "$", 6));
 
         if (filters.isEmpty()) {
             sorter.setRowFilter(null);
