@@ -1,4 +1,5 @@
 import java.awt.*;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -8,13 +9,18 @@ import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableRowSorter;
 
 public class Main extends JFrame {
-    
+
     private static final String PH = "Philippines";
     private static final String GER = "Germany";
     private static final String AUS = "Australia";
     private static final String ALL = "All";
     private static final String CONF = "Confirmed";
     private static final String UNCONF = "Unconfirmed";
+
+    // Update these with your MySQL settings.
+    private static final String DB_URL = "jdbc:mysql://localhost:3306/flight_management?useSSL=false&serverTimezone=UTC";
+    private static final String DB_USER = "root";
+    private static final String DB_PASSWORD = "Javaprojects@01";
 
     private final JTable flightTable;
     private final DefaultTableModel tableModel;
@@ -36,21 +42,21 @@ public class Main extends JFrame {
         topPanel.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, Color.LIGHT_GRAY));
 
         Font labelFont = new Font("Segoe UI", Font.BOLD, 12);
-        
+
         topPanel.add(createStyledLabel("SEARCH FLIGHT #:", labelFont));
         txtSearchFlight = new JTextField(10);
         topPanel.add(txtSearchFlight);
 
         topPanel.add(createStyledLabel("FROM:", labelFont));
-        cbFrom = new JComboBox<>(new String[]{ALL, PH, GER, AUS});
+        cbFrom = new JComboBox<>(new String[] { ALL, PH, GER, AUS });
         topPanel.add(cbFrom);
 
         topPanel.add(createStyledLabel("TO:", labelFont));
-        cbTo = new JComboBox<>(new String[]{ALL, PH, GER, AUS});
+        cbTo = new JComboBox<>(new String[] { ALL, PH, GER, AUS });
         topPanel.add(cbTo);
 
         topPanel.add(createStyledLabel("STATUS:", labelFont));
-        cbStatus = new JComboBox<>(new String[]{ALL, CONF, UNCONF});
+        cbStatus = new JComboBox<>(new String[] { ALL, CONF, UNCONF });
         topPanel.add(cbStatus);
 
         JButton applyBtn = new JButton("APPLY");
@@ -62,12 +68,14 @@ public class Main extends JFrame {
         topPanel.add(applyBtn);
 
         // 2. CENTER PANEL - Table
-        String[] columns = {"Date", "Time", "From", "To", "Flight Number", "Status"};
+        String[] columns = { "Date", "Time", "From", "To", "Flight Number", "Status" };
         tableModel = new DefaultTableModel(columns, 0) {
             @Override
-            public boolean isCellEditable(int row, int column) { return false; }
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
         };
-        
+
         flightTable = new JTable(tableModel);
         flightTable.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         flightTable.setRowHeight(30);
@@ -80,11 +88,11 @@ public class Main extends JFrame {
         // 3. BOTTOM PANEL - Records Found
         JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 30, 10));
         bottomPanel.setBackground(Color.WHITE);
-        lblCount = new JLabel("Total Records: 50");
+        lblCount = new JLabel("Total Records: 0");
         lblCount.setFont(new Font("Segoe UI", Font.ITALIC, 13));
         bottomPanel.add(lblCount);
 
-        generate50Records();
+        loadFlightsFromDatabase();
 
         // Button Action
         applyBtn.addActionListener(e -> applyFilters());
@@ -102,9 +110,55 @@ public class Main extends JFrame {
         return label;
     }
 
+    private void loadFlightsFromDatabase() {
+        tableModel.setRowCount(0);
+
+        String sql = "SELECT flight_date, flight_time, origin, destination, flight_number, status "
+            + "FROM flights ORDER BY flight_date, flight_time";
+
+        try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
+            Statement stmt = conn.createStatement();
+            ResultSet rs = stmt.executeQuery(sql)) {
+
+            while (rs.next()) {
+                Date date = rs.getDate("flight_date");
+                Time time = rs.getTime("flight_time");
+                String fromLoc = rs.getString("origin");
+                String toLoc = rs.getString("destination");
+                String flightNum = rs.getString("flight_number");
+                String currentStatus = rs.getString("status");
+
+                tableModel.addRow(new Object[] {
+                    date != null ? date.toString() : "",
+                    time != null ? time.toString() : "",
+                    fromLoc,
+                    toLoc,
+                    flightNum,
+                    currentStatus
+                });
+            }
+
+            updateTotalCount(tableModel.getRowCount());
+        } catch (SQLException e) {
+            showDatabaseError(e);
+        }
+    }
+
+    private void updateTotalCount(int count) {
+        lblCount.setText("Total Records: " + count);
+        lblCount.setForeground(new Color(40, 40, 40));
+    }
+
+    private void showDatabaseError(SQLException e) {
+        JOptionPane.showMessageDialog(this,
+            "Database error: " + e.getMessage() + "\nRun schema.sql and update DB settings.",
+            "Database Error",
+            JOptionPane.ERROR_MESSAGE);
+    }
+
     private void generate50Records() {
-        String[] locations = {PH, GER, AUS};
-        String[] statusOptions = {CONF, UNCONF};
+        String[] locations = { PH, GER, AUS };
+        String[] statusOptions = { CONF, UNCONF };
         Random rand = new Random();
 
         for (int i = 1; i <= 50; i++) {
@@ -112,11 +166,13 @@ public class Main extends JFrame {
             String time = String.format("%02d:%02d", rand.nextInt(24), rand.nextInt(60));
             String fromLoc = locations[rand.nextInt(locations.length)];
             String toLoc;
-            do { toLoc = locations[rand.nextInt(locations.length)]; } while (fromLoc.equals(toLoc));
+            do {
+                toLoc = locations[rand.nextInt(locations.length)];
+            } while (fromLoc.equals(toLoc));
             String flightNum = "FL-" + (700 + i);
             String currentStatus = statusOptions[rand.nextInt(statusOptions.length)];
 
-            tableModel.addRow(new Object[]{date, time, fromLoc, toLoc, flightNum, currentStatus});
+            tableModel.addRow(new Object[] { date, time, fromLoc, toLoc, flightNum, currentStatus });
         }
     }
 
@@ -133,11 +189,11 @@ public class Main extends JFrame {
         }
 
         // Dropdown Filters
-        if (cbFrom.getSelectedIndex() > 0) 
+        if (cbFrom.getSelectedIndex() > 0)
             filters.add(RowFilter.regexFilter("^" + cbFrom.getSelectedItem() + "$", 2));
-        if (cbTo.getSelectedIndex() > 0) 
+        if (cbTo.getSelectedIndex() > 0)
             filters.add(RowFilter.regexFilter("^" + cbTo.getSelectedItem() + "$", 3));
-        if (cbStatus.getSelectedIndex() > 0) 
+        if (cbStatus.getSelectedIndex() > 0)
             filters.add(RowFilter.regexFilter("^" + cbStatus.getSelectedItem() + "$", 5));
 
         if (filters.isEmpty()) {
@@ -150,11 +206,11 @@ public class Main extends JFrame {
         int count = sorter.getViewRowCount();
         if (count == 0) {
             // LALABAS ANG ERROR MESSAGE KAPAG WALANG DATA
-            JOptionPane.showMessageDialog(this, 
-                "No flight found with the given criteria.", 
-                "Search Result", 
-                JOptionPane.WARNING_MESSAGE);
-            
+            JOptionPane.showMessageDialog(this,
+                    "No flight found with the given criteria.",
+                    "Search Result",
+                    JOptionPane.WARNING_MESSAGE);
+
             // Optional: I-reset ang filters para ipakita ulit ang data
             sorter.setRowFilter(null);
             count = tableModel.getRowCount();
@@ -165,11 +221,12 @@ public class Main extends JFrame {
     }
 
     public static void main(String[] args) {
-        try { UIManager.setLookAndFeel(UIManager.getCrossPlatformLookAndFeelClassName()); }
-        catch (ClassNotFoundException | InstantiationException | IllegalAccessException | UnsupportedLookAndFeelException e) {
+        try {
+            UIManager.setLookAndFeel(UIManager.getCrossPlatformLookAndFeelClassName());
+        } catch (ClassNotFoundException | InstantiationException | IllegalAccessException
+                | UnsupportedLookAndFeelException e) {
             // Ignore and fall back to default Look & Feel.
         }
         SwingUtilities.invokeLater(() -> new Main().setVisible(true));
     }
 }
-
