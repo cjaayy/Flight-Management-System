@@ -27,6 +27,7 @@ public class Main extends JFrame {
     private static final String ALL = "All";
     private static final String CONF = "Confirmed";
     private static final String UNCONF = "Unconfirmed";
+    private static final String CANCEL = "Cancelled";
     private static final String DATE_PLACEHOLDER = "YYYY-MM-DD";
     private static final String TIME_PLACEHOLDER = "HH:MM";
     private static final Pattern FLIGHT_ID_PATTERN = Pattern.compile("^[A-Za-z0-9]*$");
@@ -184,7 +185,7 @@ public class Main extends JFrame {
         statusLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         statusGroup.add(statusLabel);
         statusGroup.add(Box.createVerticalStrut(4));
-        cbStatus = new JComboBox<>(new String[] { ALL, CONF, UNCONF });
+        cbStatus = new JComboBox<>(new String[] { ALL, CONF, UNCONF, CANCEL });
         cbStatus.setMaximumSize(cbStatus.getPreferredSize());
         cbStatus.setAlignmentX(Component.CENTER_ALIGNMENT);
         statusGroup.add(cbStatus);
