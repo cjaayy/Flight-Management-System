@@ -1,0 +1,27 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Build Java (bin)",
+      "type": "shell",
+      "command": "javac -d bin *.java",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": ["$javac"]
+    },
+    {
+      "label": "Run Main (bin)",
+      "type": "shell",
+      "command": "java -cp \"bin;lib/*\" Main",
+      "dependsOn": "Build Java (bin)"
+    },
+    {
+      "label": "Run DB Tester (bin)",
+      "type": "shell",
+      "command": "java -cp \"bin;lib/*\" DatabaseConnectionTester",
+      "dependsOn": "Build Java (bin)"
+    }
+  ]
+}
