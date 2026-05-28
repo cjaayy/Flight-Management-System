@@ -2,24 +2,26 @@ import java.awt.*;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableRowSorter;
 
 public class Main extends JFrame {
 
-    private static final String PH = "Philippines";
-    private static final String GER = "Germany";
-    private static final String AUS = "Australia";
     private static final String ALL = "All";
     private static final String CONF = "Confirmed";
     private static final String UNCONF = "Unconfirmed";
 
     private final JTable flightTable;
     private final DefaultTableModel tableModel;
-    private JComboBox<String> cbFrom, cbTo, cbStatus;
+    private JComboBox<String> cbStatus;
     private JTextField txtSearchFlight;
+    private JTextField txtFrom;
+    private JTextField txtTo;
     private final JLabel lblCount;
 
     public Main() {
@@ -40,26 +42,28 @@ public class Main extends JFrame {
         topPanel.add(createStyledLabel("SEARCH FLIGHT #:", labelFont));
         txtSearchFlight = new JTextField(10);
         topPanel.add(txtSearchFlight);
+        JButton clearFiltersBtn = new JButton("CLEAR");
+        clearFiltersBtn.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        clearFiltersBtn.setBackground(new Color(230, 235, 242));
+        clearFiltersBtn.setForeground(new Color(40, 40, 40));
+        clearFiltersBtn.setFocusPainted(false);
+        clearFiltersBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        clearFiltersBtn.addActionListener(e -> clearFilters());
+        topPanel.add(clearFiltersBtn);
 
         topPanel.add(createStyledLabel("FROM:", labelFont));
-        cbFrom = new JComboBox<>(new String[] { ALL, PH, GER, AUS });
-        topPanel.add(cbFrom);
+        txtFrom = new JTextField(10);
+        topPanel.add(txtFrom);
+        topPanel.add(createClearFieldButton(txtFrom));
 
         topPanel.add(createStyledLabel("TO:", labelFont));
-        cbTo = new JComboBox<>(new String[] { ALL, PH, GER, AUS });
-        topPanel.add(cbTo);
+        txtTo = new JTextField(10);
+        topPanel.add(txtTo);
+        topPanel.add(createClearFieldButton(txtTo));
 
         topPanel.add(createStyledLabel("STATUS:", labelFont));
         cbStatus = new JComboBox<>(new String[] { ALL, CONF, UNCONF });
         topPanel.add(cbStatus);
-
-        JButton applyBtn = new JButton("APPLY");
-        applyBtn.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        applyBtn.setBackground(new Color(41, 128, 185));
-        applyBtn.setForeground(Color.WHITE);
-        applyBtn.setFocusPainted(false);
-        applyBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        topPanel.add(applyBtn);
 
         // 2. CENTER PANEL - Table
         String[] columns = { "Date", "Time", "From", "To", "Flight Number", "Status" };
@@ -88,9 +92,11 @@ public class Main extends JFrame {
 
         loadFlightsFromDatabase();
 
-        // Button Action
-        applyBtn.addActionListener(e -> applyFilters());
-        txtSearchFlight.addActionListener(e -> applyFilters());
+        // Live Filters
+        addLiveFilter(txtSearchFlight);
+        addLiveFilter(txtFrom);
+        addLiveFilter(txtTo);
+        cbStatus.addActionListener(e -> applyFilters());
 
         JPanel northPanel = new JPanel(new BorderLayout());
         northPanel.setBackground(Color.WHITE);
@@ -160,6 +166,48 @@ public class Main extends JFrame {
         return label;
     }
 
+    private void addLiveFilter(JTextField field) {
+        field.getDocument().addDocumentListener(new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent e) {
+                applyFilters();
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent e) {
+                applyFilters();
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent e) {
+                applyFilters();
+            }
+        });
+    }
+
+    private JButton createClearFieldButton(JTextField field) {
+        JButton button = new JButton("CLEAR");
+        button.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        button.setBackground(new Color(230, 235, 242));
+        button.setForeground(new Color(40, 40, 40));
+        button.setFocusPainted(false);
+        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        button.setMargin(new Insets(2, 6, 2, 6));
+        button.addActionListener(e -> {
+            field.setText("");
+            applyFilters();
+        });
+        return button;
+    }
+
+    private void clearFilters() {
+        txtSearchFlight.setText("");
+        txtFrom.setText("");
+        txtTo.setText("");
+        cbStatus.setSelectedIndex(0);
+        applyFilters();
+    }
+
     private void loadFlightsFromDatabase() {
         tableModel.setRowCount(0);
 
@@ -221,11 +269,13 @@ public class Main extends JFrame {
             filters.add(RowFilter.regexFilter("(?i)" + searchText, 4));
         }
 
-        // Dropdown Filters
-        if (cbFrom.getSelectedIndex() > 0)
-            filters.add(RowFilter.regexFilter("^" + cbFrom.getSelectedItem() + "$", 2));
-        if (cbTo.getSelectedIndex() > 0)
-            filters.add(RowFilter.regexFilter("^" + cbTo.getSelectedItem() + "$", 3));
+        // Input Filters
+        String fromText = txtFrom.getText().trim();
+        if (!fromText.isEmpty())
+            filters.add(RowFilter.regexFilter("(?i)" + Pattern.quote(fromText), 2));
+        String toText = txtTo.getText().trim();
+        if (!toText.isEmpty())
+            filters.add(RowFilter.regexFilter("(?i)" + Pattern.quote(toText), 3));
         if (cbStatus.getSelectedIndex() > 0)
             filters.add(RowFilter.regexFilter("^" + cbStatus.getSelectedItem() + "$", 5));
 
@@ -235,20 +285,7 @@ public class Main extends JFrame {
             sorter.setRowFilter(RowFilter.andFilter(filters));
         }
 
-        // CHECK IF DATA EXISTS
         int count = sorter.getViewRowCount();
-        if (count == 0) {
-            // LALABAS ANG ERROR MESSAGE KAPAG WALANG DATA
-            JOptionPane.showMessageDialog(this,
-                    "No flight found with the given criteria.",
-                    "Search Result",
-                    JOptionPane.WARNING_MESSAGE);
-
-            // Optional: I-reset ang filters para ipakita ulit ang data
-            sorter.setRowFilter(null);
-            count = tableModel.getRowCount();
-        }
-
         lblCount.setText(count + " flight(s) found.");
         lblCount.setForeground(new Color(40, 40, 40));
     }
