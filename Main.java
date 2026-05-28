@@ -45,6 +45,7 @@ public class Main extends JFrame {
     private JFormattedTextField txtTime;
     private final JLabel lblCount;
     private JButton editBtn;
+    private int lastSelectedModelRow = -1;
 
     public Main() {
         setTitle("Flight Management System");
@@ -277,8 +278,26 @@ public class Main extends JFrame {
         add(bottomPanel, BorderLayout.SOUTH);
 
         flightTable.getSelectionModel().addListSelectionListener(e -> {
-            if (!e.getValueIsAdjusting() && editBtn != null) {
-                editBtn.setEnabled(flightTable.getSelectedRow() >= 0);
+            if (e.getValueIsAdjusting() || editBtn == null) {
+                return;
+            }
+            int selectedRow = flightTable.getSelectedRow();
+            if (selectedRow >= 0) {
+                lastSelectedModelRow = flightTable.convertRowIndexToModel(selectedRow);
+                editBtn.setEnabled(true);
+            }
+        });
+
+        flightTable.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                int selectedRow = flightTable.rowAtPoint(e.getPoint());
+                if (selectedRow >= 0) {
+                    lastSelectedModelRow = flightTable.convertRowIndexToModel(selectedRow);
+                    if (editBtn != null) {
+                        editBtn.setEnabled(true);
+                    }
+                }
             }
         });
     }
@@ -674,8 +693,19 @@ public class Main extends JFrame {
         button.setFocusPainted(false);
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
         button.setMargin(new Insets(4, 12, 4, 12));
-        button.setEnabled(false);
-        button.addActionListener(e -> openEditDialog());
+        button.addActionListener(e -> {
+            try {
+                openEditDialog();
+            } catch (RuntimeException ex) {
+                String detail = ex.getMessage();
+                String type = ex.getClass().getSimpleName();
+                String message = (detail == null || detail.isBlank()) ? type : (type + ": " + detail);
+                JOptionPane.showMessageDialog(this,
+                        "Edit failed: " + message,
+                        "Edit Error",
+                        JOptionPane.ERROR_MESSAGE);
+            }
+        });
         return button;
     }
 
@@ -714,11 +744,18 @@ public class Main extends JFrame {
 
     private void openEditDialog() {
         int viewRow = flightTable.getSelectedRow();
-        if (viewRow < 0) {
+        int modelRow;
+        if (viewRow >= 0) {
+            modelRow = flightTable.convertRowIndexToModel(viewRow);
+        } else if (lastSelectedModelRow >= 0) {
+            modelRow = lastSelectedModelRow;
+        } else {
+            JOptionPane.showMessageDialog(this,
+                    "Select a record to edit.",
+                    "No Selection",
+                    JOptionPane.WARNING_MESSAGE);
             return;
         }
-
-        int modelRow = flightTable.convertRowIndexToModel(viewRow);
         String dateValue = String.valueOf(tableModel.getValueAt(modelRow, 0));
         String timeValue = String.valueOf(tableModel.getValueAt(modelRow, 1));
         String fromValue = String.valueOf(tableModel.getValueAt(modelRow, 2));
@@ -737,8 +774,9 @@ public class Main extends JFrame {
         JFormattedTextField timeField = createMaskedField("##:##", TIME_PLACEHOLDER, 10, ":",
                 new int[] { 2, 5 }, this::showTimeError);
         timeField.setText(formatTimeForEdit(timeValue));
-        JTextField fromField = new JTextField(fromValue);
-        JTextField toField = new JTextField(toValue);
+        List<String> locationOptions = getLocationOptions();
+        JComboBox<String> fromField = createLocationComboBox(fromValue, "From", locationOptions);
+        JComboBox<String> toField = createLocationComboBox(toValue, "To", locationOptions);
         JComboBox<String> aircraftField = new JComboBox<>(getAircraftOptions());
         if (aircraftValue != null && !aircraftValue.isBlank()) {
             boolean found = false;
@@ -756,9 +794,6 @@ public class Main extends JFrame {
         }
         JComboBox<String> statusField = new JComboBox<>(new String[] { CONF, UNCONF, CANCEL });
         statusField.setSelectedItem(statusValue);
-
-        addLettersOnlyFilter(fromField, "From");
-        addLettersOnlyFilter(toField, "To");
 
         JPanel form = new JPanel(new GridLayout(0, 2, 10, 8));
         form.setBorder(new EmptyBorder(10, 10, 10, 10));
@@ -785,11 +820,29 @@ public class Main extends JFrame {
 
         String newDateText = getMaskedFilterText(dateField);
         String newTimeText = getMaskedFilterText(timeField);
-        String newFrom = fromField.getText().trim();
-        String newTo = toField.getText().trim();
+        String newFromInput = getComboEditorText(fromField);
+        String newToInput = getComboEditorText(toField);
+        String newFrom = resolveLocationInput(newFromInput, locationOptions);
+        String newTo = resolveLocationInput(newToInput, locationOptions);
         String newAircraft = aircraftField.getSelectedItem() == null ? ""
                 : aircraftField.getSelectedItem().toString().trim();
         String newStatus = statusField.getSelectedItem() == null ? "" : statusField.getSelectedItem().toString();
+
+        if (newFrom == null) {
+            JOptionPane.showMessageDialog(this,
+                    "From must match an available place from the database.",
+                    "Invalid From",
+                    JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        if (newTo == null) {
+            JOptionPane.showMessageDialog(this,
+                    "To must match an available place from the database.",
+                    "Invalid To",
+                    JOptionPane.WARNING_MESSAGE);
+            return;
+        }
 
         if (newDateText.isEmpty() || newTimeText.isEmpty() || newFrom.isEmpty() || newTo.isEmpty()
                 || newAircraft.isEmpty() || newStatus.isEmpty()) {
@@ -904,6 +957,135 @@ public class Main extends JFrame {
             }
         }
         return aircraftSet.toArray(String[]::new);
+    }
+
+    private List<String> getLocationOptions() {
+        Set<String> locations = new TreeSet<>();
+        for (int row = 0; row < tableModel.getRowCount(); row++) {
+            Object origin = tableModel.getValueAt(row, 2);
+            Object destination = tableModel.getValueAt(row, 3);
+            if (origin != null) {
+                String value = origin.toString().trim();
+                if (!value.isEmpty()) {
+                    locations.add(value);
+                }
+            }
+            if (destination != null) {
+                String value = destination.toString().trim();
+                if (!value.isEmpty()) {
+                    locations.add(value);
+                }
+            }
+        }
+        return new ArrayList<>(locations);
+    }
+
+    private JComboBox<String> createLocationComboBox(String selectedValue, String fieldName,
+            List<String> locationOptions) {
+        JComboBox<String> combo = new JComboBox<>(locationOptions.toArray(String[]::new));
+        combo.setEditable(true);
+        Component editorComponent = combo.getEditor().getEditorComponent();
+        if (editorComponent instanceof JTextField editor) {
+            addLettersOnlyFilter(editor, fieldName);
+        }
+        installComboAutoComplete(combo, locationOptions);
+        if (selectedValue != null && !selectedValue.isBlank()) {
+            combo.setSelectedItem(selectedValue);
+        }
+        return combo;
+    }
+
+    private void installComboAutoComplete(JComboBox<String> combo, List<String> options) {
+        if (combo == null || options == null) {
+            return;
+        }
+
+        JComboBox<String> target = combo;
+        Component editorComponent = target.getEditor().getEditorComponent();
+        if (!(editorComponent instanceof JTextField editor)) {
+            return;
+        }
+        DefaultComboBoxModel<String> model = new DefaultComboBoxModel<>(options.toArray(String[]::new));
+        target.setModel(model);
+        target.setEditable(true);
+
+        boolean[] adjusting = new boolean[] { false };
+        editor.getDocument().addDocumentListener(new DocumentListener() {
+            private void updateModel() {
+                if (adjusting[0]) {
+                    return;
+                }
+                String text = editor.getText();
+                String safeText = text == null ? "" : text;
+                SwingUtilities.invokeLater(() -> {
+                    if (adjusting[0]) {
+                        return;
+                    }
+                    adjusting[0] = true;
+                    String query = safeText.trim().toLowerCase();
+                    model.removeAllElements();
+                    if (query.isEmpty()) {
+                        for (String option : options) {
+                            model.addElement(option);
+                        }
+                        target.setPopupVisible(false);
+                    } else {
+                        for (String option : options) {
+                            if (option.toLowerCase().contains(query)) {
+                                model.addElement(option);
+                            }
+                        }
+                        target.setPopupVisible(model.getSize() > 0);
+                    }
+                    editor.setText(safeText);
+                    editor.setCaretPosition(safeText.length());
+                    adjusting[0] = false;
+                });
+            }
+
+            @Override
+            public void insertUpdate(DocumentEvent e) {
+                updateModel();
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent e) {
+                updateModel();
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent e) {
+                updateModel();
+            }
+        });
+    }
+
+    private String getComboEditorText(JComboBox<String> combo) {
+        if (combo == null) {
+            return "";
+        }
+        Object editorItem = combo.getEditor().getItem();
+        if (editorItem != null) {
+            return editorItem.toString().trim();
+        }
+        Object selected = combo.getSelectedItem();
+        return selected == null ? "" : selected.toString().trim();
+    }
+
+    private String resolveLocationInput(String input, List<String> options) {
+        if (input == null) {
+            return null;
+        }
+        String trimmed = input.trim();
+        if (trimmed.isEmpty()) {
+            return "";
+        }
+        for (String option : options) {
+            if (option.equalsIgnoreCase(trimmed)) {
+                return option;
+            }
+        }
+        return null;
     }
 
     private void loadFlightsFromDatabase() {
