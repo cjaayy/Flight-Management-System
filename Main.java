@@ -52,6 +52,7 @@ public class Main extends JFrame {
     private final JLabel lblUnconfirmedCount;
     private final JLabel lblCancelledCount;
     private JButton editBtn;
+    private JButton aaBtn;
     private int lastSelectedModelRow = -1;
 
     public Main() {
@@ -275,6 +276,7 @@ public class Main extends JFrame {
         JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 30, 10));
         bottomPanel.setBackground(APP_BG);
         editBtn = createEditButton();
+        aaBtn = createAABtn();
         Font countFont = new Font("Segoe UI", Font.ITALIC, 13);
         Color countColor = APP_GREEN;
         lblConfirmedCount = new JLabel("Confirmed: 0");
@@ -302,6 +304,7 @@ public class Main extends JFrame {
         countsBar.add(createCountSeparator());
         countsBar.add(lblCount);
         bottomPanel.add(editBtn);
+        bottomPanel.add(aaBtn);
         bottomPanel.add(countsBar);
 
         loadFlightsFromDatabase();
@@ -719,6 +722,23 @@ public class Main extends JFrame {
                         "Edit Error",
                         JOptionPane.ERROR_MESSAGE);
             }
+        });
+        return button;
+    }
+
+    private JButton createAABtn() {
+        JButton button = new JButton("AA");
+        button.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        button.setBackground(APP_BG);
+        button.setForeground(APP_GREEN);
+        button.setBorder(BorderFactory.createLineBorder(APP_GREEN_SOFT));
+        button.setFocusPainted(false);
+        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        button.setMargin(new Insets(4, 12, 4, 12));
+        button.addActionListener(e -> {
+            // Comment out the next line if you want to temporarily disable the sound
+            // button.
+            SoundEffectPlayer.playAllahuAkbarSound();
         });
         return button;
     }
