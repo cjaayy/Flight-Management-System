@@ -111,6 +111,7 @@ public class Main extends JFrame {
         fromClearBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
         fromClearBtn.setMaximumSize(fromClearBtn.getPreferredSize());
         fromGroup.add(fromClearBtn);
+        fromGroup.add(Box.createVerticalStrut(6));
         topPanel.add(fromGroup);
 
         JPanel toGroup = createFilterGroupPanel();
@@ -132,6 +133,7 @@ public class Main extends JFrame {
         toClearBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
         toClearBtn.setMaximumSize(toClearBtn.getPreferredSize());
         toGroup.add(toClearBtn);
+        toGroup.add(Box.createVerticalStrut(6));
         topPanel.add(toGroup);
 
         JPanel dateGroup = createFilterGroupPanel();
@@ -190,6 +192,7 @@ public class Main extends JFrame {
         aircraftClearBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
         aircraftClearBtn.setMaximumSize(aircraftClearBtn.getPreferredSize());
         aircraftGroup.add(aircraftClearBtn);
+        aircraftGroup.add(Box.createVerticalStrut(6));
         topPanel.add(aircraftGroup);
 
         JPanel statusGroup = createFilterGroupPanel();
@@ -207,6 +210,7 @@ public class Main extends JFrame {
         statusClearBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
         statusClearBtn.setMaximumSize(statusClearBtn.getPreferredSize());
         statusGroup.add(statusClearBtn);
+        statusGroup.add(Box.createVerticalStrut(6));
         topPanel.add(statusGroup);
 
         String[] columns = { "Date", "Time", "From", "To", "Flight ID", "Aircraft", "Status" };
@@ -679,7 +683,7 @@ public class Main extends JFrame {
 
     private JButton createClearComboButton(JComboBox<?> combo) {
         JButton button = new JButton("ALL");
-        styleFilterButton(button, 10, new Insets(0, 8, 2, 8));
+        styleFilterButton(button, 10, new Insets(2, 8, 10, 8));
         button.addActionListener(e -> {
             if (combo == null) {
                 applyFilters();
