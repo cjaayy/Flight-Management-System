@@ -32,15 +32,14 @@ public class Main extends JFrame {
     private static final String DATE_PLACEHOLDER = "YYYY-MM-DD";
     private static final String TIME_PLACEHOLDER = "HH:MM";
     private static final Pattern FLIGHT_ID_PATTERN = Pattern.compile("^[A-Za-z0-9]*$");
-    private static final Pattern LETTERS_ONLY_PATTERN = Pattern.compile("^[A-Za-z]*$");
 
     private final JTable flightTable;
     private final DefaultTableModel tableModel;
     private JComboBox<String> cbStatus;
     private JComboBox<String> cbAircraft;
     private JTextField txtSearchFlight;
-    private JTextField txtFrom;
-    private JTextField txtTo;
+    private JComboBox<String> cbFrom;
+    private JComboBox<String> cbTo;
     private JFormattedTextField txtDate;
     private JFormattedTextField txtTime;
     private final JLabel lblCount;
@@ -90,14 +89,16 @@ public class Main extends JFrame {
         fromLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         fromGroup.add(fromLabel);
         fromGroup.add(Box.createVerticalStrut(4));
-        txtFrom = new JTextField(10);
-        txtFrom.setHorizontalAlignment(SwingConstants.CENTER);
-        txtFrom.setMaximumSize(txtFrom.getPreferredSize());
-        addLettersOnlyFilter(txtFrom, "From");
-        txtFrom.setAlignmentX(Component.CENTER_ALIGNMENT);
-        fromGroup.add(txtFrom);
+        cbFrom = new JComboBox<>(new String[] { ALL });
+        cbFrom.setPrototypeDisplayValue("International City");
+        Dimension fromSize = cbFrom.getPreferredSize();
+        cbFrom.setPreferredSize(new Dimension(Math.max(160, fromSize.width), fromSize.height));
+        cbFrom.setMinimumSize(cbFrom.getPreferredSize());
+        cbFrom.setMaximumSize(cbFrom.getPreferredSize());
+        cbFrom.setAlignmentX(Component.CENTER_ALIGNMENT);
+        fromGroup.add(cbFrom);
         fromGroup.add(Box.createVerticalStrut(4));
-        JButton fromClearBtn = createClearFieldButton(txtFrom);
+        JButton fromClearBtn = createClearComboButton(cbFrom);
         fromClearBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
         fromClearBtn.setMaximumSize(fromClearBtn.getPreferredSize());
         fromGroup.add(fromClearBtn);
@@ -110,14 +111,16 @@ public class Main extends JFrame {
         toLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         toGroup.add(toLabel);
         toGroup.add(Box.createVerticalStrut(4));
-        txtTo = new JTextField(10);
-        txtTo.setHorizontalAlignment(SwingConstants.CENTER);
-        txtTo.setMaximumSize(txtTo.getPreferredSize());
-        addLettersOnlyFilter(txtTo, "To");
-        txtTo.setAlignmentX(Component.CENTER_ALIGNMENT);
-        toGroup.add(txtTo);
+        cbTo = new JComboBox<>(new String[] { ALL });
+        cbTo.setPrototypeDisplayValue("International City");
+        Dimension toSize = cbTo.getPreferredSize();
+        cbTo.setPreferredSize(new Dimension(Math.max(160, toSize.width), toSize.height));
+        cbTo.setMinimumSize(cbTo.getPreferredSize());
+        cbTo.setMaximumSize(cbTo.getPreferredSize());
+        cbTo.setAlignmentX(Component.CENTER_ALIGNMENT);
+        toGroup.add(cbTo);
         toGroup.add(Box.createVerticalStrut(4));
-        JButton toClearBtn = createClearFieldButton(txtTo);
+        JButton toClearBtn = createClearComboButton(cbTo);
         toClearBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
         toClearBtn.setMaximumSize(toClearBtn.getPreferredSize());
         toGroup.add(toClearBtn);
@@ -261,8 +264,8 @@ public class Main extends JFrame {
 
         // Live Filters
         addLiveFilter(txtSearchFlight);
-        addLiveFilter(txtFrom);
-        addLiveFilter(txtTo);
+        cbFrom.addActionListener(e -> applyFilters());
+        cbTo.addActionListener(e -> applyFilters());
         addLiveFilter(txtDate);
         addLiveFilter(txtTime);
         cbAircraft.addActionListener(e -> applyFilters());
@@ -564,42 +567,6 @@ public class Main extends JFrame {
         });
     }
 
-    private void addLettersOnlyFilter(JTextField field, String fieldName) {
-        AbstractDocument doc = (AbstractDocument) field.getDocument();
-        doc.setDocumentFilter(new DocumentFilter() {
-            @Override
-            public void insertString(FilterBypass fb, int offset, String string, AttributeSet attr)
-                    throws BadLocationException {
-                if (string == null) {
-                    return;
-                }
-                String newText = new StringBuilder(fb.getDocument().getText(0, fb.getDocument().getLength()))
-                        .insert(offset, string)
-                        .toString();
-                if (LETTERS_ONLY_PATTERN.matcher(newText).matches()) {
-                    super.insertString(fb, offset, string, attr);
-                } else {
-                    showLettersOnlyError(fieldName);
-                }
-            }
-
-            @Override
-            public void replace(FilterBypass fb, int offset, int length, String text, AttributeSet attrs)
-                    throws BadLocationException {
-                String replacement = text == null ? "" : text;
-                String current = fb.getDocument().getText(0, fb.getDocument().getLength());
-                String newText = new StringBuilder(current)
-                        .replace(offset, offset + length, replacement)
-                        .toString();
-                if (LETTERS_ONLY_PATTERN.matcher(newText).matches()) {
-                    super.replace(fb, offset, length, text, attrs);
-                } else {
-                    showLettersOnlyError(fieldName);
-                }
-            }
-        });
-    }
-
     private String getMaskedFilterText(JFormattedTextField field) {
         if (field == null) {
             return "";
@@ -619,14 +586,6 @@ public class Main extends JFrame {
         JOptionPane.showMessageDialog(this,
                 "Only letters and numbers are allowed for Flight ID.",
                 "Invalid Flight ID",
-                JOptionPane.WARNING_MESSAGE);
-    }
-
-    private void showLettersOnlyError(String fieldName) {
-        Toolkit.getDefaultToolkit().beep();
-        JOptionPane.showMessageDialog(this,
-                "Only letters are allowed for " + fieldName + ".",
-                "Invalid Input",
                 JOptionPane.WARNING_MESSAGE);
     }
 
@@ -733,8 +692,8 @@ public class Main extends JFrame {
 
     private void clearFilters() {
         txtSearchFlight.setText("");
-        txtFrom.setText("");
-        txtTo.setText("");
+        cbFrom.setSelectedIndex(0);
+        cbTo.setSelectedIndex(0);
         txtDate.setValue(null);
         txtTime.setValue(null);
         cbAircraft.setSelectedIndex(0);
@@ -764,9 +723,11 @@ public class Main extends JFrame {
         String aircraftValue = String.valueOf(tableModel.getValueAt(modelRow, 5));
         String statusValue = String.valueOf(tableModel.getValueAt(modelRow, 6));
 
-        JTextField flightIdField = new JTextField(flightIdValue);
-        flightIdField.setEditable(false);
+        JLabel flightIdField = new JLabel(flightIdValue);
+        flightIdField.setOpaque(true);
         flightIdField.setBackground(new Color(245, 247, 249));
+        flightIdField.setFont(UIManager.getFont("TextField.font"));
+        flightIdField.setBorder(UIManager.getBorder("TextField.border"));
 
         JFormattedTextField dateField = createMaskedField("####-##-##", DATE_PLACEHOLDER, 10, "-",
                 new int[] { 4, 7, 10 }, this::showDateError);
@@ -775,8 +736,8 @@ public class Main extends JFrame {
                 new int[] { 2, 5 }, this::showTimeError);
         timeField.setText(formatTimeForEdit(timeValue));
         List<String> locationOptions = getLocationOptions();
-        JComboBox<String> fromField = createLocationComboBox(fromValue, "From", locationOptions);
-        JComboBox<String> toField = createLocationComboBox(toValue, "To", locationOptions);
+        JComboBox<String> fromField = createLocationComboBox(fromValue, locationOptions);
+        JComboBox<String> toField = createLocationComboBox(toValue, locationOptions);
         JComboBox<String> aircraftField = new JComboBox<>(getAircraftOptions());
         if (aircraftValue != null && !aircraftValue.isBlank()) {
             boolean found = false;
@@ -988,106 +949,13 @@ public class Main extends JFrame {
         return new ArrayList<>(locations);
     }
 
-    private JComboBox<String> createLocationComboBox(String selectedValue, String fieldName,
-            List<String> locationOptions) {
+    private JComboBox<String> createLocationComboBox(String selectedValue, List<String> locationOptions) {
         JComboBox<String> combo = new JComboBox<>(locationOptions.toArray(String[]::new));
-        combo.setEditable(true);
-        Component editorComponent = combo.getEditor().getEditorComponent();
-        if (editorComponent instanceof JTextField editor) {
-            addLettersOnlyFilter(editor, fieldName);
-        }
-        installComboAutoComplete(combo, locationOptions);
-        installComboEnterSelect(combo);
+        combo.setEditable(false);
         if (selectedValue != null && !selectedValue.isBlank()) {
             combo.setSelectedItem(selectedValue);
         }
         return combo;
-    }
-
-    private void installComboAutoComplete(JComboBox<String> combo, List<String> options) {
-        if (combo == null || options == null) {
-            return;
-        }
-
-        JComboBox<String> target = combo;
-        Component editorComponent = target.getEditor().getEditorComponent();
-        if (!(editorComponent instanceof JTextField editor)) {
-            return;
-        }
-        DefaultComboBoxModel<String> model = new DefaultComboBoxModel<>(options.toArray(String[]::new));
-        target.setModel(model);
-        target.setEditable(true);
-
-        boolean[] adjusting = new boolean[] { false };
-        editor.getDocument().addDocumentListener(new DocumentListener() {
-            private void updateModel() {
-                if (adjusting[0]) {
-                    return;
-                }
-                String text = editor.getText();
-                String safeText = text == null ? "" : text;
-                SwingUtilities.invokeLater(() -> {
-                    if (adjusting[0]) {
-                        return;
-                    }
-                    adjusting[0] = true;
-                    String query = safeText.trim().toLowerCase();
-                    model.removeAllElements();
-                    if (query.isEmpty()) {
-                        for (String option : options) {
-                            model.addElement(option);
-                        }
-                        target.setPopupVisible(false);
-                    } else {
-                        for (String option : options) {
-                            if (option.toLowerCase().contains(query)) {
-                                model.addElement(option);
-                            }
-                        }
-                        target.setPopupVisible(model.getSize() > 0);
-                    }
-                    editor.setText(safeText);
-                    editor.setCaretPosition(safeText.length());
-                    adjusting[0] = false;
-                });
-            }
-
-            @Override
-            public void insertUpdate(DocumentEvent e) {
-                updateModel();
-            }
-
-            @Override
-            public void removeUpdate(DocumentEvent e) {
-                updateModel();
-            }
-
-            @Override
-            public void changedUpdate(DocumentEvent e) {
-                updateModel();
-            }
-        });
-    }
-
-    private void installComboEnterSelect(JComboBox<String> combo) {
-        if (combo == null) {
-            return;
-        }
-        Component editorComponent = combo.getEditor().getEditorComponent();
-        if (!(editorComponent instanceof JTextField editor)) {
-            return;
-        }
-        editor.addActionListener(e -> {
-            if (combo.isPopupVisible()) {
-                ComboBoxModel<String> model = combo.getModel();
-                if (model.getSize() > 0) {
-                    combo.setSelectedItem(model.getElementAt(0));
-                }
-                combo.setPopupVisible(false);
-            } else {
-                combo.setSelectedItem(editor.getText().trim());
-            }
-        });
     }
 
     private String getComboEditorText(JComboBox<String> combo) {
@@ -1153,6 +1021,7 @@ public class Main extends JFrame {
 
             updateTotalCount(tableModel.getRowCount());
             updateAircraftFilterOptions();
+            updateLocationFilterOptions();
         } catch (SQLException e) {
             showDatabaseError(e);
         }
@@ -1190,6 +1059,40 @@ public class Main extends JFrame {
         }
     }
 
+    private void updateLocationFilterOptions() {
+        if (cbFrom == null || cbTo == null) {
+            return;
+        }
+
+        Object selectedFrom = cbFrom.getSelectedItem();
+        Object selectedTo = cbTo.getSelectedItem();
+        List<String> locations = getLocationOptions();
+
+        DefaultComboBoxModel<String> fromModel = new DefaultComboBoxModel<>();
+        fromModel.addElement(ALL);
+        for (String location : locations) {
+            fromModel.addElement(location);
+        }
+        cbFrom.setModel(fromModel);
+        if (selectedFrom != null && locations.contains(selectedFrom.toString())) {
+            cbFrom.setSelectedItem(selectedFrom.toString());
+        } else {
+            cbFrom.setSelectedIndex(0);
+        }
+
+        DefaultComboBoxModel<String> toModel = new DefaultComboBoxModel<>();
+        toModel.addElement(ALL);
+        for (String location : locations) {
+            toModel.addElement(location);
+        }
+        cbTo.setModel(toModel);
+        if (selectedTo != null && locations.contains(selectedTo.toString())) {
+            cbTo.setSelectedItem(selectedTo.toString());
+        } else {
+            cbTo.setSelectedIndex(0);
+        }
+    }
+
     private void updateTotalCount(int count) {
         lblCount.setText("Total Records: " + count);
         lblCount.setForeground(new Color(40, 40, 40));
@@ -1215,12 +1118,14 @@ public class Main extends JFrame {
         }
 
         // Input Filters
-        String fromText = txtFrom.getText().trim();
-        if (!fromText.isEmpty())
-            filters.add(RowFilter.regexFilter("(?i)" + Pattern.quote(fromText), 2));
-        String toText = txtTo.getText().trim();
-        if (!toText.isEmpty())
-            filters.add(RowFilter.regexFilter("(?i)" + Pattern.quote(toText), 3));
+        if (cbFrom.getSelectedIndex() > 0) {
+            String fromValue = cbFrom.getSelectedItem().toString();
+            filters.add(RowFilter.regexFilter("^" + Pattern.quote(fromValue) + "$", 2));
+        }
+        if (cbTo.getSelectedIndex() > 0) {
+            String toValue = cbTo.getSelectedItem().toString();
+            filters.add(RowFilter.regexFilter("^" + Pattern.quote(toValue) + "$", 3));
+        }
         String dateText = getMaskedFilterText(txtDate);
         if (!dateText.isEmpty())
             filters.add(RowFilter.regexFilter("(?i)" + Pattern.quote(dateText), 0));
