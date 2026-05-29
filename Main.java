@@ -259,7 +259,9 @@ public class Main extends JFrame {
         });
 
         JScrollPane scrollPane = new JScrollPane(flightTable);
-        scrollPane.setBorder(new EmptyBorder(10, 20, 10, 20));
+        scrollPane.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(APP_GREEN_SOFT),
+                new EmptyBorder(10, 20, 10, 20)));
         scrollPane.getViewport().setBackground(APP_BG);
 
         // 3. BOTTOM PANEL - Records Found
