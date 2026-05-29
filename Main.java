@@ -43,6 +43,9 @@ public class Main extends JFrame {
     private JFormattedTextField txtDate;
     private JFormattedTextField txtTime;
     private final JLabel lblCount;
+    private final JLabel lblConfirmedCount;
+    private final JLabel lblUnconfirmedCount;
+    private final JLabel lblCancelledCount;
     private JButton editBtn;
     private int lastSelectedModelRow = -1;
 
@@ -256,10 +259,34 @@ public class Main extends JFrame {
         JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 30, 10));
         bottomPanel.setBackground(Color.WHITE);
         editBtn = createEditButton();
+        Font countFont = new Font("Segoe UI", Font.ITALIC, 13);
+        Color countColor = new Color(40, 40, 40);
+        lblConfirmedCount = new JLabel("Confirmed: 0");
+        lblConfirmedCount.setFont(countFont);
+        lblConfirmedCount.setForeground(countColor);
+        lblUnconfirmedCount = new JLabel("Unconfirmed: 0");
+        lblUnconfirmedCount.setFont(countFont);
+        lblUnconfirmedCount.setForeground(countColor);
+        lblCancelledCount = new JLabel("Cancelled: 0");
+        lblCancelledCount.setFont(countFont);
+        lblCancelledCount.setForeground(countColor);
         lblCount = new JLabel("Total Records: 0");
-        lblCount.setFont(new Font("Segoe UI", Font.ITALIC, 13));
+        lblCount.setFont(countFont);
+        lblCount.setForeground(countColor);
+        JPanel countsBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 4));
+        countsBar.setBackground(new Color(245, 247, 249));
+        countsBar.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(200, 205, 212)),
+                new EmptyBorder(4, 10, 4, 10)));
+        countsBar.add(lblConfirmedCount);
+        countsBar.add(createCountSeparator());
+        countsBar.add(lblUnconfirmedCount);
+        countsBar.add(createCountSeparator());
+        countsBar.add(lblCancelledCount);
+        countsBar.add(createCountSeparator());
+        countsBar.add(lblCount);
         bottomPanel.add(editBtn);
-        bottomPanel.add(lblCount);
+        bottomPanel.add(countsBar);
 
         loadFlightsFromDatabase();
 
@@ -629,6 +656,13 @@ public class Main extends JFrame {
             applyFilters();
         });
         return button;
+    }
+
+    private JSeparator createCountSeparator() {
+        JSeparator separator = new JSeparator(SwingConstants.VERTICAL);
+        separator.setForeground(new Color(200, 205, 212));
+        separator.setPreferredSize(new Dimension(1, 16));
+        return separator;
     }
 
     private JButton createClearComboButton(JComboBox<?> combo) {
@@ -1097,6 +1131,41 @@ public class Main extends JFrame {
     private void updateTotalCount(int count) {
         lblCount.setText("Total Records: " + count);
         lblCount.setForeground(new Color(40, 40, 40));
+        int[] statusCounts = countStatuses(null);
+        updateStatusCounts(statusCounts[0], statusCounts[1], statusCounts[2]);
+    }
+
+    private void updateStatusCounts(int confirmed, int unconfirmed, int cancelled) {
+        lblConfirmedCount.setText("Confirmed: " + confirmed);
+        lblUnconfirmedCount.setText("Unconfirmed: " + unconfirmed);
+        lblCancelledCount.setText("Cancelled: " + cancelled);
+        Color countColor = new Color(40, 40, 40);
+        lblConfirmedCount.setForeground(countColor);
+        lblUnconfirmedCount.setForeground(countColor);
+        lblCancelledCount.setForeground(countColor);
+    }
+
+    private int[] countStatuses(TableRowSorter<DefaultTableModel> sorter) {
+        int confirmed = 0;
+        int unconfirmed = 0;
+        int cancelled = 0;
+        int rowCount = sorter == null ? tableModel.getRowCount() : sorter.getViewRowCount();
+        for (int viewRow = 0; viewRow < rowCount; viewRow++) {
+            int modelRow = sorter == null ? viewRow : sorter.convertRowIndexToModel(viewRow);
+            Object value = tableModel.getValueAt(modelRow, 6);
+            if (value == null) {
+                continue;
+            }
+            String status = value.toString().trim();
+            if (CONF.equalsIgnoreCase(status)) {
+                confirmed++;
+            } else if (UNCONF.equalsIgnoreCase(status)) {
+                unconfirmed++;
+            } else if (CANCEL.equalsIgnoreCase(status)) {
+                cancelled++;
+            }
+        }
+        return new int[] { confirmed, unconfirmed, cancelled };
     }
 
     private void showDatabaseError(SQLException e) {
@@ -1128,17 +1197,20 @@ public class Main extends JFrame {
             filters.add(RowFilter.regexFilter("^" + Pattern.quote(toValue) + "$", 3));
         }
         String dateText = getMaskedFilterText(txtDate);
-        if (!dateText.isEmpty())
+        if (!dateText.isEmpty()) {
             filters.add(RowFilter.regexFilter("(?i)" + Pattern.quote(dateText), 0));
+        }
         String timeText = getMaskedFilterText(txtTime);
-        if (!timeText.isEmpty())
+        if (!timeText.isEmpty()) {
             filters.add(RowFilter.regexFilter("(?i)" + Pattern.quote(timeText), 1));
+        }
         if (cbAircraft.getSelectedIndex() > 0) {
             String aircraftValue = cbAircraft.getSelectedItem().toString();
             filters.add(RowFilter.regexFilter("^" + Pattern.quote(aircraftValue) + "$", 5));
         }
-        if (cbStatus.getSelectedIndex() > 0)
+        if (cbStatus.getSelectedIndex() > 0) {
             filters.add(RowFilter.regexFilter("^" + cbStatus.getSelectedItem() + "$", 6));
+        }
 
         if (filters.isEmpty()) {
             sorter.setRowFilter(null);
@@ -1149,6 +1221,8 @@ public class Main extends JFrame {
         int count = sorter.getViewRowCount();
         lblCount.setText(count + " flight(s) found.");
         lblCount.setForeground(new Color(40, 40, 40));
+        int[] statusCounts = countStatuses(sorter);
+        updateStatusCounts(statusCounts[0], statusCounts[1], statusCounts[2]);
     }
 
     public static void main(String[] args) {
