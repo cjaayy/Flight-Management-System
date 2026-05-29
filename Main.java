@@ -36,7 +36,6 @@ public class Main extends JFrame {
     private static final Color APP_PANEL_BG = new Color(0, 0, 0);
     private static final Color APP_CARD_BG = new Color(6, 14, 6);
     private static final Color APP_GREEN = new Color(0, 255, 0);
-    private static final Color APP_GREEN_DARK = new Color(0, 180, 0);
     private static final Color APP_GREEN_SOFT = new Color(0, 120, 0);
 
     private final JTable flightTable;
@@ -93,6 +92,7 @@ public class Main extends JFrame {
         topPanel.add(searchGroup);
 
         JPanel fromGroup = createFilterGroupPanel();
+        fromGroup.setBorder(BorderFactory.createMatteBorder(0, 0, 0, 1, APP_GREEN_SOFT));
         fromGroup.setLayout(new BoxLayout(fromGroup, BoxLayout.Y_AXIS));
         JLabel fromLabel = createStyledLabel("FROM:", labelFont);
         fromLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -115,6 +115,7 @@ public class Main extends JFrame {
         topPanel.add(fromGroup);
 
         JPanel toGroup = createFilterGroupPanel();
+        toGroup.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 0));
         toGroup.setLayout(new BoxLayout(toGroup, BoxLayout.Y_AXIS));
         JLabel toLabel = createStyledLabel("TO:", labelFont);
         toLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -137,6 +138,7 @@ public class Main extends JFrame {
         topPanel.add(toGroup);
 
         JPanel dateGroup = createFilterGroupPanel();
+        dateGroup.setBorder(BorderFactory.createMatteBorder(0, 0, 0, 1, APP_GREEN_SOFT));
         dateGroup.setLayout(new BoxLayout(dateGroup, BoxLayout.Y_AXIS));
         JLabel dateLabel = createStyledLabel("DATE:", labelFont);
         dateLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -156,6 +158,7 @@ public class Main extends JFrame {
         topPanel.add(dateGroup);
 
         JPanel timeGroup = createFilterGroupPanel();
+        timeGroup.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 0));
         timeGroup.setLayout(new BoxLayout(timeGroup, BoxLayout.Y_AXIS));
         JLabel timeLabel = createStyledLabel("TIME:", labelFont);
         timeLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
