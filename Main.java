@@ -282,11 +282,11 @@ public class Main extends JFrame {
         lblCount = new JLabel("Total Records: 0");
         lblCount.setFont(countFont);
         lblCount.setForeground(countColor);
-        JPanel countsBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 4));
+        JPanel countsBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 6));
         countsBar.setBackground(APP_CARD_BG);
         countsBar.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(APP_GREEN_SOFT),
-                new EmptyBorder(4, 10, 4, 10)));
+                new EmptyBorder(5, 10, 5, 10)));
         countsBar.add(lblConfirmedCount);
         countsBar.add(createCountSeparator());
         countsBar.add(lblUnconfirmedCount);
@@ -670,7 +670,10 @@ public class Main extends JFrame {
     private JSeparator createCountSeparator() {
         JSeparator separator = new JSeparator(SwingConstants.VERTICAL);
         separator.setForeground(APP_GREEN_SOFT);
-        separator.setPreferredSize(new Dimension(1, 16));
+        separator.setPreferredSize(new Dimension(1, 12));
+        separator.setMinimumSize(new Dimension(1, 12));
+        separator.setMaximumSize(new Dimension(1, 12));
+        separator.setAlignmentY(Component.CENTER_ALIGNMENT);
         return separator;
     }
 
