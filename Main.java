@@ -51,6 +51,7 @@ public class Main extends JFrame {
         setSize(1100, 750);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
+        setExtendedState(JFrame.MAXIMIZED_BOTH);
         getContentPane().setBackground(Color.WHITE);
         setLayout(new BorderLayout(10, 10));
 
