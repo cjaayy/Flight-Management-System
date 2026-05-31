@@ -32,11 +32,15 @@ public class Main extends JFrame {
     private static final String DATE_PLACEHOLDER = "YYYY-MM-DD";
     private static final String TIME_PLACEHOLDER = "HH:MM";
     private static final Pattern FLIGHT_ID_PATTERN = Pattern.compile("^[A-Za-z0-9]*$");
-    private static final Color APP_BG = Color.BLACK;
-    private static final Color APP_PANEL_BG = new Color(0, 0, 0);
+    private static final Color APP_BG = new Color(2, 6, 2);
+    private static final Color APP_PANEL_BG = new Color(6, 10, 6);
     private static final Color APP_CARD_BG = new Color(6, 14, 6);
     private static final Color APP_GREEN = new Color(0, 255, 0);
     private static final Color APP_GREEN_SOFT = new Color(0, 120, 0);
+    private static final Color APP_TEXT_MUTED = new Color(110, 160, 110);
+    private static final Color APP_HEADER_TOP = new Color(10, 18, 10);
+    private static final Color APP_HEADER_BOTTOM = new Color(0, 0, 0);
+    private static final Color APP_ROW_ALT = new Color(4, 10, 4);
 
     private final JTable flightTable;
     private final DefaultTableModel tableModel;
@@ -65,9 +69,11 @@ public class Main extends JFrame {
         setLayout(new BorderLayout(10, 10));
 
         // 1. TOP AREA - Header + Filters
-        JPanel topPanel = new JPanel(new GridLayout(1, 7, 0, 0));
-        topPanel.setBackground(APP_PANEL_BG);
-        topPanel.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, APP_GREEN_SOFT));
+        JPanel topPanel = new JPanel(new GridLayout(1, 7, 10, 0));
+        topPanel.setBackground(APP_BG);
+        topPanel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(0, 0, 1, 0, APP_GREEN_SOFT),
+                new EmptyBorder(10, 12, 10, 12)));
 
         Font labelFont = new Font("Segoe UI", Font.BOLD, 12);
 
@@ -93,7 +99,6 @@ public class Main extends JFrame {
         topPanel.add(searchGroup);
 
         JPanel fromGroup = createFilterGroupPanel();
-        fromGroup.setBorder(BorderFactory.createMatteBorder(0, 0, 0, 1, APP_GREEN_SOFT));
         fromGroup.setLayout(new BoxLayout(fromGroup, BoxLayout.Y_AXIS));
         JLabel fromLabel = createStyledLabel("FROM:", labelFont);
         fromLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -116,7 +121,6 @@ public class Main extends JFrame {
         topPanel.add(fromGroup);
 
         JPanel toGroup = createFilterGroupPanel();
-        toGroup.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 0));
         toGroup.setLayout(new BoxLayout(toGroup, BoxLayout.Y_AXIS));
         JLabel toLabel = createStyledLabel("TO:", labelFont);
         toLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -139,7 +143,6 @@ public class Main extends JFrame {
         topPanel.add(toGroup);
 
         JPanel dateGroup = createFilterGroupPanel();
-        dateGroup.setBorder(BorderFactory.createMatteBorder(0, 0, 0, 1, APP_GREEN_SOFT));
         dateGroup.setLayout(new BoxLayout(dateGroup, BoxLayout.Y_AXIS));
         JLabel dateLabel = createStyledLabel("DATE:", labelFont);
         dateLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -159,7 +162,6 @@ public class Main extends JFrame {
         topPanel.add(dateGroup);
 
         JPanel timeGroup = createFilterGroupPanel();
-        timeGroup.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 0));
         timeGroup.setLayout(new BoxLayout(timeGroup, BoxLayout.Y_AXIS));
         JLabel timeLabel = createStyledLabel("TIME:", labelFont);
         timeLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -237,19 +239,35 @@ public class Main extends JFrame {
         flightTable.setShowVerticalLines(true);
         flightTable.setShowHorizontalLines(true);
         flightTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        flightTable.setFillsViewportHeight(true);
 
-        DefaultTableCellRenderer centeredRenderer = new DefaultTableCellRenderer();
-        centeredRenderer.setHorizontalAlignment(SwingConstants.CENTER);
+        DefaultTableCellRenderer centeredRenderer = new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
+                    boolean hasFocus, int row, int column) {
+                Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                if (!isSelected) {
+                    c.setBackground(row % 2 == 0 ? APP_BG : APP_ROW_ALT);
+                    c.setForeground(APP_GREEN);
+                } else {
+                    c.setBackground(APP_GREEN_SOFT);
+                    c.setForeground(APP_BG);
+                }
+                setHorizontalAlignment(SwingConstants.CENTER);
+                return c;
+            }
+        };
         for (int i = 0; i < flightTable.getColumnCount(); i++) {
             flightTable.getColumnModel().getColumn(i).setCellRenderer(centeredRenderer);
         }
 
         JTableHeader tableHeader = flightTable.getTableHeader();
         tableHeader.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        tableHeader.setBackground(APP_BG);
+        tableHeader.setBackground(APP_PANEL_BG);
         tableHeader.setForeground(APP_GREEN);
         tableHeader.setReorderingAllowed(false);
         tableHeader.setResizingAllowed(false);
+        tableHeader.setPreferredSize(new Dimension(0, 36));
         TableCellRenderer baseHeaderRenderer = tableHeader.getDefaultRenderer();
         tableHeader.setDefaultRenderer((table, value, isSelected, hasFocus, row, column) -> {
             Component c = baseHeaderRenderer.getTableCellRendererComponent(
@@ -275,6 +293,7 @@ public class Main extends JFrame {
         // 3. BOTTOM PANEL - Records Found
         JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 30, 10));
         bottomPanel.setBackground(APP_BG);
+        bottomPanel.setBorder(new EmptyBorder(6, 16, 10, 16));
         editBtn = createEditButton();
         aaBtn = createAABtn();
         Font countFont = new Font("Segoe UI", Font.ITALIC, 13);
@@ -291,11 +310,9 @@ public class Main extends JFrame {
         lblCount = new JLabel("Total Records: 0");
         lblCount.setFont(countFont);
         lblCount.setForeground(countColor);
-        JPanel countsBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 6));
-        countsBar.setBackground(APP_CARD_BG);
-        countsBar.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(APP_GREEN_SOFT),
-                new EmptyBorder(5, 10, 5, 10)));
+        JPanel countsBar = new RoundedPanel(14, APP_CARD_BG, APP_GREEN_SOFT,
+                new FlowLayout(FlowLayout.LEFT, 12, 6));
+        countsBar.setBorder(new EmptyBorder(6, 12, 6, 12));
         countsBar.add(lblConfirmedCount);
         countsBar.add(createCountSeparator());
         countsBar.add(lblUnconfirmedCount);
@@ -353,15 +370,30 @@ public class Main extends JFrame {
     }
 
     private JComponent createHeaderPanel() {
-        JPanel header = new JPanel(new BorderLayout(10, 0));
-        header.setBackground(Color.WHITE);
+        GradientPanel header = new GradientPanel(APP_HEADER_TOP, APP_HEADER_BOTTOM);
+        header.setLayout(new BorderLayout(20, 0));
         header.setBorder(new EmptyBorder(18, 24, 18, 24));
 
         JLabel logo = createHeaderIconLabel();
-
         JLabel building = createHeaderBuildingLabel();
 
+        JPanel titlePanel = new JPanel();
+        titlePanel.setOpaque(false);
+        titlePanel.setLayout(new BoxLayout(titlePanel, BoxLayout.Y_AXIS));
+        JLabel title = new JLabel("Flight Management System");
+        title.setFont(new Font("Segoe UI", Font.BOLD, 22));
+        title.setForeground(APP_GREEN);
+        title.setAlignmentX(Component.CENTER_ALIGNMENT);
+        JLabel subtitle = new JLabel("Operations Dashboard");
+        subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        subtitle.setForeground(APP_TEXT_MUTED);
+        subtitle.setAlignmentX(Component.CENTER_ALIGNMENT);
+        titlePanel.add(title);
+        titlePanel.add(Box.createVerticalStrut(2));
+        titlePanel.add(subtitle);
+
         header.add(logo, BorderLayout.WEST);
+        header.add(titlePanel, BorderLayout.CENTER);
         header.add(building, BorderLayout.EAST);
         return header;
     }
@@ -401,6 +433,30 @@ public class Main extends JFrame {
         label.setPreferredSize(new Dimension(140, 60));
         label.setHorizontalAlignment(SwingConstants.RIGHT);
         return label;
+    }
+
+    private static final class GradientPanel extends JPanel {
+        private final Color top;
+        private final Color bottom;
+
+        private GradientPanel(Color top, Color bottom) {
+            this.top = top;
+            this.bottom = bottom;
+            setOpaque(false);
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            int width = getWidth();
+            int height = getHeight();
+            GradientPaint paint = new GradientPaint(0, 0, top, 0, height, bottom);
+            g2.setPaint(paint);
+            g2.fillRect(0, 0, width, height);
+            g2.dispose();
+            super.paintComponent(g);
+        }
     }
 
     private JLabel createStyledLabel(String text, Font font) {
@@ -559,6 +615,37 @@ public class Main extends JFrame {
         }
     }
 
+    private static final class RoundedPanel extends JPanel {
+        private final int radius;
+        private final Color fill;
+        private final Color stroke;
+
+        private RoundedPanel(int radius, Color fill, Color stroke, LayoutManager layout) {
+            super(layout);
+            this.radius = radius;
+            this.fill = fill;
+            this.stroke = stroke;
+            setOpaque(false);
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            int width = getWidth();
+            int height = getHeight();
+            int arc = Math.max(0, radius * 2);
+            g2.setColor(fill);
+            g2.fillRoundRect(0, 0, width - 1, height - 1, arc, arc);
+            if (stroke != null) {
+                g2.setColor(stroke);
+                g2.drawRoundRect(0, 0, width - 1, height - 1, arc, arc);
+            }
+            g2.dispose();
+            super.paintComponent(g);
+        }
+    }
+
     private void addLiveFilter(JTextField field) {
         field.getDocument().addDocumentListener(new DocumentListener() {
             @Override
@@ -653,9 +740,9 @@ public class Main extends JFrame {
     }
 
     private JPanel createFilterGroupPanel() {
-        JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 10));
-        panel.setBackground(APP_PANEL_BG);
-        panel.setBorder(BorderFactory.createLineBorder(APP_GREEN_SOFT));
+        JPanel panel = new RoundedPanel(12, APP_CARD_BG, APP_GREEN_SOFT,
+                new FlowLayout(FlowLayout.CENTER, 10, 8));
+        panel.setBorder(new EmptyBorder(6, 10, 6, 10));
         return panel;
     }
 
@@ -1290,22 +1377,29 @@ public class Main extends JFrame {
         UIManager.put("TextField.caretForeground", APP_GREEN);
         UIManager.put("TextField.selectionBackground", APP_GREEN_SOFT);
         UIManager.put("TextField.selectionForeground", APP_BG);
+        UIManager.put("TextField.border", BorderFactory.createLineBorder(APP_GREEN_SOFT));
         UIManager.put("FormattedTextField.background", APP_BG);
         UIManager.put("FormattedTextField.foreground", APP_GREEN);
         UIManager.put("FormattedTextField.caretForeground", APP_GREEN);
+        UIManager.put("FormattedTextField.border", BorderFactory.createLineBorder(APP_GREEN_SOFT));
         UIManager.put("ComboBox.background", APP_BG);
         UIManager.put("ComboBox.foreground", APP_GREEN);
+        UIManager.put("ComboBox.selectionBackground", APP_GREEN_SOFT);
+        UIManager.put("ComboBox.selectionForeground", APP_BG);
+        UIManager.put("ComboBox.border", BorderFactory.createLineBorder(APP_GREEN_SOFT));
         UIManager.put("Button.background", APP_BG);
         UIManager.put("Button.foreground", APP_GREEN);
+        UIManager.put("Button.border", BorderFactory.createLineBorder(APP_GREEN_SOFT));
         UIManager.put("Table.background", APP_BG);
         UIManager.put("Table.foreground", APP_GREEN);
         UIManager.put("Table.selectionBackground", APP_GREEN_SOFT);
         UIManager.put("Table.selectionForeground", APP_BG);
-        UIManager.put("TableHeader.background", APP_BG);
+        UIManager.put("TableHeader.background", APP_PANEL_BG);
         UIManager.put("TableHeader.foreground", APP_GREEN);
         UIManager.put("ScrollPane.background", APP_BG);
         UIManager.put("Viewport.background", APP_BG);
         UIManager.put("Separator.foreground", APP_GREEN_SOFT);
+        UIManager.put("Table.alternateRowColor", APP_ROW_ALT);
     }
 
 }
