@@ -38,8 +38,8 @@ public class Main extends JFrame {
     private static final Color APP_GREEN = new Color(0, 255, 0);
     private static final Color APP_GREEN_SOFT = new Color(0, 120, 0);
     private static final Color APP_TEXT_MUTED = new Color(110, 160, 110);
-    private static final Color APP_HEADER_TOP = new Color(10, 18, 10);
-    private static final Color APP_HEADER_BOTTOM = new Color(0, 0, 0);
+    private static final Color APP_HEADER_TOP = Color.WHITE;
+    private static final Color APP_HEADER_BOTTOM = Color.WHITE;
     private static final Color APP_ROW_ALT = new Color(4, 10, 4);
 
     private final JTable flightTable;
@@ -56,7 +56,7 @@ public class Main extends JFrame {
     private final JLabel lblUnconfirmedCount;
     private final JLabel lblCancelledCount;
     private JButton editBtn;
-    private JButton aaBtn;
+    //private JButton aaBtn;
     private int lastSelectedModelRow = -1;
 
     public Main() {
