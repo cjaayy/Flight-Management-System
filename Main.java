@@ -41,6 +41,7 @@ public class Main extends JFrame {
     private static final Color APP_HEADER_TOP = Color.WHITE;
     private static final Color APP_HEADER_BOTTOM = Color.WHITE;
     private static final Color APP_ROW_ALT = new Color(4, 10, 4);
+    private static final boolean SHOW_AA_BUTTON = false;
 
     private final JTable flightTable;
     private final DefaultTableModel tableModel;
@@ -295,7 +296,9 @@ public class Main extends JFrame {
         bottomPanel.setBackground(APP_BG);
         bottomPanel.setBorder(new EmptyBorder(6, 16, 10, 16));
         editBtn = createEditButton();
-        aaBtn = createAABtn();
+        if (SHOW_AA_BUTTON) {
+            aaBtn = createAABtn();
+        }
         Font countFont = new Font("Segoe UI", Font.ITALIC, 13);
         Color countColor = APP_GREEN;
         lblConfirmedCount = new JLabel("Confirmed: 0");
@@ -321,7 +324,9 @@ public class Main extends JFrame {
         countsBar.add(createCountSeparator());
         countsBar.add(lblCount);
         bottomPanel.add(editBtn);
-        bottomPanel.add(aaBtn);
+        if (SHOW_AA_BUTTON && aaBtn != null) {
+            bottomPanel.add(aaBtn);
+        }
         bottomPanel.add(countsBar);
 
         loadFlightsFromDatabase();
