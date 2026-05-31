@@ -56,7 +56,7 @@ public class Main extends JFrame {
     private final JLabel lblUnconfirmedCount;
     private final JLabel lblCancelledCount;
     private JButton editBtn;
-    //private JButton aaBtn;
+    private JButton aaBtn;
     private int lastSelectedModelRow = -1;
 
     public Main() {
